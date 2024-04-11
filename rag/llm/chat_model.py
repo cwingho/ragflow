@@ -125,7 +125,7 @@ class QWenChat(Base):
         tk_count = 0
         if response.status_code == HTTPStatus.OK:
             ans += response.output.choices[0]['message']['content']
-            tk_count += response.usage.output_tokens
+            tk_count += response.usage.total_tokens
             if response.output.choices[0].get("finish_reason", "") == "length":
                 ans += "...\nFor the content length reason, it stopped, continue?" if is_english(
                     [ans]) else "······\n由于长度的原因，回答被截断了，要继续吗？"
@@ -226,4 +226,3 @@ class LocalLLM(Base):
             return ans, num_tokens_from_string(ans)
         except Exception as e:
             return "**ERROR**: " + str(e), 0
-
