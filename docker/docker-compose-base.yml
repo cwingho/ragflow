@@ -1,35 +1,35 @@
 version: '2.2'
 
 services:
-  es01:
-    container_name: ragflow-es-01
-    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
-    volumes:
-      - esdata01:/usr/share/elasticsearch/data
-    ports:
-      - ${ES_PORT}:9200
-    environment:
-      - node.name=es01
-      - cluster.name=${CLUSTER_NAME}
-      - cluster.initial_master_nodes=es01
-      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
-      - bootstrap.memory_lock=false
-      - xpack.security.enabled=false
-      - cluster.max_shards_per_node=4096
-      - TZ=${TIMEZONE}
-    mem_limit: ${MEM_LIMIT}
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    healthcheck:
-      test: ["CMD-SHELL", "curl http://localhost:9200"]
-      interval: 10s
-      timeout: 10s
-      retries: 120
-    networks:
-      - ragflow
-    restart: always
+  # es01:
+  #   container_name: ragflow-es-01
+  #   image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+  #   volumes:
+  #     - esdata01:/usr/share/elasticsearch/data
+  #   ports:
+  #     - ${ES_PORT}:9200
+  #   environment:
+  #     - node.name=es01
+  #     - cluster.name=${CLUSTER_NAME}
+  #     - cluster.initial_master_nodes=es01
+  #     - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+  #     - bootstrap.memory_lock=false
+  #     - xpack.security.enabled=false
+  #     - cluster.max_shards_per_node=4096
+  #     - TZ=${TIMEZONE}
+  #   mem_limit: ${MEM_LIMIT}
+  #   ulimits:
+  #     memlock:
+  #       soft: -1
+  #       hard: -1
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl http://localhost:9200"]
+  #     interval: 10s
+  #     timeout: 10s
+  #     retries: 120
+  #   networks:
+  #     - ragflow
+  #   restart: always
 
   kibana:
     depends_on:
@@ -96,8 +96,8 @@ services:
 
 
 volumes:
-  esdata01:
-    driver: local
+  # esdata01:
+  #   driver: local
   kibanadata:
     driver: local
   mysql_data:

@@ -3,6 +3,8 @@ version: '2.2'
 include:
   - path: ./docker-compose-base.yml
     env_file: ./.env
+  - path: ./docker-compose-es.yml
+    env_file: ./.env
 
 services:
   ragflow:
@@ -15,7 +17,7 @@ services:
     container_name: ragflow-server
     ports:
       - ${SVR_HTTP_PORT}:9380
-      - 80:80
+      - 8888:80
       - 443:443
     volumes:
       - ./service_conf.yaml:/ragflow/conf/service_conf.yaml
