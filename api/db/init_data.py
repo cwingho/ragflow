@@ -109,7 +109,12 @@ factory_infos = [{
     "logo": "",
     "tags": "LLM,TEXT EMBEDDING",
     "status": "1",
-},
+}, {
+    "name": "AzureOpenAI",
+    "logo": "",
+    "tags": "LLM",
+    "status": "1",
+}
     # {
     #     "name": "文心一言",
     #     "logo": "",
@@ -255,7 +260,15 @@ def init_llm_factory():
             "tags": "LLM,CHAT",
             "max_tokens": 128 * 1000,
             "model_type": LLMType.CHAT.value
-        },
+        }, 
+        # ------------------------ Azure OpenAI -----------------------
+        {
+            "fid": factory_infos[5]["name"],
+            "llm_name": "GPT4",
+            "tags": "LLM,CHAT,8k",
+            "max_tokens": 8191,
+            "model_type": LLMType.CHAT.value
+        }
     ]
     for info in factory_infos:
         try:

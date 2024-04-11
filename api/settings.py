@@ -90,6 +90,12 @@ default_llm = {
         "embedding_model": "",
         "image2text_model": "",
         "asr_model": "",
+    },
+    "AzureOpenAI": {
+        "chat_model": "XMGI-Chat3-GPT4",
+        "embedding_model": "",
+        "image2text_model": "",
+        "asr_model": "",
     }
 }
 LLM = get_base_config("user_default_llm", {})
