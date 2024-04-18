@@ -57,9 +57,10 @@ def upload():
         if not e:
             return get_data_error_result(
                 retmsg="Can't find this knowledgebase!")
-        if DocumentService.get_doc_count(kb.tenant_id) >= 128:
-            return get_data_error_result(
-                retmsg="Exceed the maximum file number of a free user!")
+        
+        # if DocumentService.get_doc_count(kb.tenant_id) >= 128:
+        #     return get_data_error_result(
+        #         retmsg="Exceed the maximum file number of a free user!")
 
         filename = duplicate_name(
             DocumentService.query,
