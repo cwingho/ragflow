@@ -110,13 +110,6 @@ factory_infos = [{
     "tags": "LLM,TEXT EMBEDDING",
     "status": "1",
 }, {
-<<<<<<< HEAD
-    "name": "AzureOpenAI",
-    "logo": "",
-    "tags": "LLM",
-    "status": "1",
-}
-=======
     "name": "FastEmbed",
     "logo": "",
     "tags": "TEXT EMBEDDING",
@@ -126,13 +119,17 @@ factory_infos = [{
     "logo": "",
     "tags": "LLM,TEXT EMBEDDING,SPEECH2TEXT,MODERATION",
         "status": "1",
-},{
+}, {
     "name": "QAnything",
     "logo": "",
     "tags": "LLM,TEXT EMBEDDING,SPEECH2TEXT,MODERATION",
         "status": "1",
-},
->>>>>>> upstream/main
+}, {
+    "name": "AzureOpenAI",
+    "logo": "",
+    "tags": "LLM",
+    "status": "1",
+}, 
     # {
     #     "name": "文心一言",
     #     "logo": "",
@@ -278,18 +275,8 @@ def init_llm_factory():
             "tags": "LLM,CHAT",
             "max_tokens": 128 * 1000,
             "model_type": LLMType.CHAT.value
-<<<<<<< HEAD
         }, 
-        # ------------------------ Azure OpenAI -----------------------
-        {
-            "fid": factory_infos[5]["name"],
-            "llm_name": "GPT4",
-            "tags": "LLM,CHAT,8k",
-            "max_tokens": 8191,
-            "model_type": LLMType.CHAT.value
-        }
-=======
-        },
+
         # ------------------------ FastEmbed -----------------------
         {
             "fid": factory_infos[5]["name"],
@@ -350,7 +337,14 @@ def init_llm_factory():
             "max_tokens": 512,
             "model_type": LLMType.EMBEDDING.value
         },
->>>>>>> upstream/main
+        # ------------------------ Azure OpenAI -----------------------
+        {
+            "fid": factory_infos[8]["name"],
+            "llm_name": "GPT4",
+            "tags": "LLM,CHAT,8k",
+            "max_tokens": 8191,
+            "model_type": LLMType.CHAT.value
+        }
     ]
     for info in factory_infos:
         try:
