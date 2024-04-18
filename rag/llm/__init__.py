@@ -45,5 +45,6 @@ ChatModel = {
     "Tongyi-Qianwen": QWenChat,
     "Ollama": OllamaChat,
     "Xinference": XinferenceChat,
-    "Moonshot": MoonshotChat
+    "Moonshot": MoonshotChat,
+    "AzureOpenAI": AzureGPT4
 }
