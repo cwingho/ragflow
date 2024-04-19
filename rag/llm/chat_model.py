@@ -54,10 +54,10 @@ class GptTurbo(Base):
             return "**ERROR**: " + str(e), 0
 
 class VLLM(Base):
-    def __init__(self, key, model_name="meta-llama/Meta-Llama-3-8B-Instruct", base_url="http://10.64.136.2:8080/v1"):
+    def __init__(self, key, model_name="Meta-Llama-3-8B-Instruct", base_url="http://10.64.136.2:8080/v1"):
         if not base_url: base_url="http://10.64.136.2:8080/v1"
         self.client = OpenAI(api_key='FAKE_API_KEY', base_url=base_url)
-        self.model_name = model_name
+        self.model_name = "meta-llama/Meta-Llama-3-8B-Instruct"
 
     def chat(self, system, history, gen_conf):
         if system:

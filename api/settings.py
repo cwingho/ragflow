@@ -94,7 +94,7 @@ default_llm = {
         "asr_model": "",
     },
     "VLLM": {
-        "chat_model": "meta-llama/Meta-Llama-3-8B-Instruct",
+        "chat_model": "Meta-Llama-3-8B-Instruct",
         "embedding_model": "",
         "image2text_model": "",
         "asr_model": "",
