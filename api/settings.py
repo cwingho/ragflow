@@ -92,7 +92,14 @@ default_llm = {
         "embedding_model": "",
         "image2text_model": "",
         "asr_model": "",
-    }
+    },
+    "VLLM": {
+        "chat_model": "meta-llama/Meta-Llama-3-8B-Instruct",
+        "embedding_model": "",
+        "image2text_model": "",
+        "asr_model": "",
+    },
+
 }
 LLM = get_base_config("user_default_llm", {})
 LLM_FACTORY = LLM.get("factory", "Tongyi-Qianwen")

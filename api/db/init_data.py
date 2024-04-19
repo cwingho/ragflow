@@ -129,6 +129,11 @@ factory_infos = [{
     "logo": "",
     "tags": "LLM",
     "status": "1",
+}, {
+    "name": "VLLM",
+    "logo": "",
+    "tags": "LLM",
+    "status": "1",
 }, 
     # {
     #     "name": "文心一言",
@@ -341,6 +346,13 @@ def init_llm_factory():
         {
             "fid": factory_infos[8]["name"],
             "llm_name": "GPT4",
+            "tags": "LLM,CHAT,8k",
+            "max_tokens": 8191,
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[9]["name"],
+            "llm_name": "meta-llama/Meta-Llama-3-8B-Instruct",
             "tags": "LLM,CHAT,8k",
             "max_tokens": 8191,
             "model_type": LLMType.CHAT.value

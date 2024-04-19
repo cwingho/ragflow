@@ -46,5 +46,6 @@ ChatModel = {
     "Ollama": OllamaChat,
     "Xinference": XinferenceChat,
     "Moonshot": MoonshotChat,
-    "AzureOpenAI": AzureGPT4
+    "AzureOpenAI": AzureGPT4,
+    "VLLM": VLLM
 }
