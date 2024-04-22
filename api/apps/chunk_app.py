@@ -268,7 +268,7 @@ def retrieval_test():
 
 @manager.route('/rag', methods=['POST'])
 @validate_request("kb_id", "question")
-def retrieval_test():
+def rag():
     req = request.json
     page = int(req.get("page", 1))
     size = int(req.get("size", 30))
