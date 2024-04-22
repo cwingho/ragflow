@@ -64,7 +64,7 @@ class HuParser:
         """
 
     def __char_width(self, c):
-        return (c["x1"] - c["x0"]) // len(c["text"])
+        return (c["x1"] - c["x0"]) // max(len(c["text"]), 1)
 
     def __height(self, c):
         return c["bottom"] - c["top"]
@@ -830,10 +830,13 @@ class HuParser:
         pn = [bx["page_number"]]
         top = bx["top"] - self.page_cum_height[pn[0] - 1]
         bott = bx["bottom"] - self.page_cum_height[pn[0] - 1]
-        if pn[-1] - 1 >= len(self.page_images): return ""
+        page_images_cnt = len(self.page_images)
+        if pn[-1] - 1 >= page_images_cnt: return ""
         while bott * ZM > self.page_images[pn[-1] - 1].size[1]:
             bott -= self.page_images[pn[-1] - 1].size[1] / ZM
             pn.append(pn[-1] + 1)
+            if pn[-1] - 1 >= page_images_cnt:
+                return ""
 
         return "@@{}\t{:.1f}\t{:.1f}\t{:.1f}\t{:.1f}##" \
             .format("-".join([str(p) for p in pn]),
