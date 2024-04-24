@@ -16,7 +16,7 @@
 from zhipuai import ZhipuAI
 from dashscope import Generation
 from abc import ABC
-from openai import OpenAI, AzureOpenAI
+from openai import OpenAI
 import openai
 from ollama import Client
 from rag.nlp import is_english
@@ -35,56 +35,6 @@ class GptTurbo(Base):
     def __init__(self, key, model_name="gpt-3.5-turbo", base_url="https://api.openai.com/v1"):
         if not base_url: base_url="https://api.openai.com/v1"
         self.client = OpenAI(api_key=key, base_url=base_url)
-        self.model_name = model_name
-
-    def chat(self, system, history, gen_conf):
-        if system:
-            history.insert(0, {"role": "system", "content": system})
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=history,
-                **gen_conf)
-            ans = response.choices[0].message.content.strip()
-            if response.choices[0].finish_reason == "length":
-                ans += "...\nFor the content length reason, it stopped, continue?" if is_english(
-                    [ans]) else "······\n由于长度的原因，回答被截断了，要继续吗？"
-            return ans, response.usage.total_tokens
-        except openai.APIError as e:
-            return "**ERROR**: " + str(e), 0
-
-class VLLM(Base):
-    def __init__(self, key, model_name="Meta-Llama-3-8B-Instruct", base_url="http://10.64.136.2:8080/v1"):
-        if not base_url: base_url="http://10.64.136.2:8080/v1"
-        self.client = OpenAI(api_key='FAKE_API_KEY', base_url=base_url)
-        self.model_name = "meta-llama/Meta-Llama-3-8B-Instruct"
-
-    def chat(self, system, history, gen_conf):
-        if system:
-            history.insert(0, {"role": "system", "content": system})
-        try:
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=history,
-                **gen_conf)
-            ans = response.choices[0].message.content.strip()
-            if response.choices[0].finish_reason == "length":
-                ans += "...\nFor the content length reason, it stopped, continue?" if is_english(
-                    [ans]) else "······\n由于长度的原因，回答被截断了，要继续吗？"
-            return ans, response.usage.total_tokens
-        except openai.APIError as e:
-            return "**ERROR**: " + str(e), 0
-
-class AzureGPT4(Base):
-    def __init__(self, key, model_name="XMGI-Chat3-GPT4", base_url="https://xmgi-chat3.openai.azure.com"):
-        base_url="https://xmgi-chat3.openai.azure.com"
-        model_name = "XMGI-Chat3-GPT4"
-        # self.client = OpenAI(api_key=key, base_url=base_url)
-        self.client = AzureOpenAI(
-            api_key = "ac5dec93ed6a458aa08d5c75e8a572b3",  
-            api_version = "2023-07-01-preview",
-            azure_endpoint = base_url
-            )
         self.model_name = model_name
 
     def chat(self, system, history, gen_conf):
@@ -203,7 +153,7 @@ class OllamaChat(Base):
                 options=options
             )
             ans = response["message"]["content"].strip()
-            return ans, response["eval_count"] + response["prompt_eval_count"]
+            return ans, response["eval_count"] + response.get("prompt_eval_count", 0)
         except Exception as e:
             return "**ERROR**: " + str(e), 0
 
@@ -228,3 +178,55 @@ class XinferenceChat(Base):
             return ans, response.usage.total_tokens
         except openai.APIError as e:
             return "**ERROR**: " + str(e), 0
+
+class VLLM(Base):
+    def __init__(self, key, model_name="Meta-Llama-3-8B-Instruct", base_url="http://10.64.136.2:8080/v1"):
+        if not base_url: base_url="http://10.64.136.2:8080/v1"
+        self.client = OpenAI(api_key='FAKE_API_KEY', base_url=base_url)
+        self.model_name = "meta-llama/Meta-Llama-3-8B-Instruct"
+
+    def chat(self, system, history, gen_conf):
+        if system:
+            history.insert(0, {"role": "system", "content": system})
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=history,
+                stop="<|eot_id|>",
+                **gen_conf)
+            ans = response.choices[0].message.content.strip()
+            if response.choices[0].finish_reason == "length":
+                ans += "...\nFor the content length reason, it stopped, continue?" if is_english(
+                    [ans]) else "······\n由于长度的原因，回答被截断了，要继续吗？"
+            return ans, response.usage.total_tokens
+        except openai.APIError as e:
+            return "**ERROR**: " + str(e), 0
+
+class AzureGPT4(Base):
+    def __init__(self, key, model_name="XMGI-Chat3-GPT4", base_url="https://xmgi-chat3.openai.azure.com"):
+        base_url="https://xmgi-chat3.openai.azure.com"
+        model_name = "XMGI-Chat3-GPT4"
+        # self.client = OpenAI(api_key=key, base_url=base_url)
+        self.client = AzureOpenAI(
+            api_key = "ac5dec93ed6a458aa08d5c75e8a572b3",  
+            api_version = "2023-07-01-preview",
+            azure_endpoint = base_url
+            )
+        self.model_name = model_name
+
+    def chat(self, system, history, gen_conf):
+        if system:
+            history.insert(0, {"role": "system", "content": system})
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=history,
+                **gen_conf)
+            ans = response.choices[0].message.content.strip()
+            if response.choices[0].finish_reason == "length":
+                ans += "...\nFor the content length reason, it stopped, continue?" if is_english(
+                    [ans]) else "······\n由于长度的原因，回答被截断了，要继续吗？"
+            return ans, response.usage.total_tokens
+        except openai.APIError as e:
+            return "**ERROR**: " + str(e), 0
+
