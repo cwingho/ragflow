@@ -350,9 +350,17 @@ def init_llm_factory():
             "max_tokens": 8191,
             "model_type": LLMType.CHAT.value
         },
+        # ------------------------ VLLM -----------------------
         {
             "fid": factory_infos[9]["name"],
             "llm_name": "Meta-Llama-3-8B-Instruct",
+            "tags": "LLM,CHAT,8k",
+            "max_tokens": 8191,
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[9]["name"],
+            "llm_name": "Meta-Llama-3-70B-Instruct",
             "tags": "LLM,CHAT,8k",
             "max_tokens": 8191,
             "model_type": LLMType.CHAT.value
