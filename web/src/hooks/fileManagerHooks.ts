@@ -1,4 +1,8 @@
-import { IFileListRequestBody } from '@/interfaces/request/file-manager';
+import {
+  IConnectRequestBody,
+  IFileListRequestBody,
+} from '@/interfaces/request/file-manager';
+import { UploadFile } from 'antd';
 import { useCallback } from 'react';
 import { useDispatch, useSelector } from 'umi';
 
@@ -93,4 +97,48 @@ export const useSelectParentFolderList = () => {
     (state) => state.fileManager.parentFolderList,
   );
   return parentFolderList.toReversed();
+};
+
+export const useUploadFile = () => {
+  const dispatch = useDispatch();
+
+  const uploadFile = useCallback(
+    (fileList: UploadFile[], parentId: string) => {
+      try {
+        return dispatch<any>({
+          type: 'fileManager/uploadFile',
+          payload: {
+            file: fileList,
+            parentId,
+            path: fileList.map((file) => (file as any).webkitRelativePath),
+          },
+        });
+      } catch (errorInfo) {
+        console.log('Failed:', errorInfo);
+      }
+    },
+    [dispatch],
+  );
+
+  return uploadFile;
+};
+
+export const useConnectToKnowledge = () => {
+  const dispatch = useDispatch();
+
+  const uploadFile = useCallback(
+    (payload: IConnectRequestBody) => {
+      try {
+        return dispatch<any>({
+          type: 'fileManager/connectFileToKnowledge',
+          payload,
+        });
+      } catch (errorInfo) {
+        console.log('Failed:', errorInfo);
+      }
+    },
+    [dispatch],
+  );
+
+  return uploadFile;
 };

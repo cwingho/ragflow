@@ -15,6 +15,13 @@
 #
 from peewee import Expression
 
+from elasticsearch_dsl import Q
+
+from api.utils import current_timestamp
+from rag.utils.es_conn import ELASTICSEARCH
+from rag.utils.minio_conn import MINIO
+from rag.nlp import search
+
 from api.db import FileType, TaskStatus
 from api.db.db_models import DB, Knowledgebase, Tenant
 from api.db.db_models import Document
@@ -71,7 +78,21 @@ class DocumentService(CommonService):
 
     @classmethod
     @DB.connection_context()
-    def get_newly_uploaded(cls, tm, mod=0, comm=1, items_per_page=64):
+    def remove_document(cls, doc, tenant_id):
+        ELASTICSEARCH.deleteByQuery(
+            Q("match", doc_id=doc.id), idxnm=search.index_name(tenant_id))
+
+        cls.increment_chunk_num(
+            doc.id, doc.kb_id, doc.token_num * -1, doc.chunk_num * -1, 0)
+        if not cls.delete(doc):
+            raise RuntimeError("Database error (Document removal)!")
+
+        MINIO.rm(doc.kb_id, doc.location)
+        return cls.delete_by_id(doc.id)
+
+    @classmethod
+    @DB.connection_context()
+    def get_newly_uploaded(cls, tm):
         fields = [
             cls.model.id,
             cls.model.kb_id,
@@ -93,11 +114,9 @@ class DocumentService(CommonService):
                 cls.model.status == StatusEnum.VALID.value,
                 ~(cls.model.type == FileType.VIRTUAL.value),
                 cls.model.progress == 0,
-                cls.model.update_time >= tm,
-                cls.model.run == TaskStatus.RUNNING.value,
-                (Expression(cls.model.create_time, "%%", comm) == mod))\
-            .order_by(cls.model.update_time.asc())\
-            .paginate(1, items_per_page)
+                cls.model.update_time >= current_timestamp() - 1000 * 600,
+                cls.model.run == TaskStatus.RUNNING.value)\
+            .order_by(cls.model.update_time.asc())
         return list(docs.dicts())
 
     @classmethod

@@ -33,6 +33,7 @@ do
   task_exe $i $WS &
 done
 
+while [ 1 -eq 1 ];do
 $PY api/ragflow_server.py
-
+done
 wait;

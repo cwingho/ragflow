@@ -24,7 +24,9 @@ import sys
 import time
 import traceback
 from functools import partial
-from rag.utils import MINIO
+
+from api.db.services.file2document_service import File2DocumentService
+from rag.utils.minio_conn import MINIO
 from api.db.db_models import close_connection
 from rag.settings import database_logger
 from rag.settings import cron_logger, DOC_MAXIMUM_SIZE
@@ -33,7 +35,7 @@ import numpy as np
 from elasticsearch_dsl import Q
 from multiprocessing.context import TimeoutError
 from api.db.services.task_service import TaskService
-from rag.utils import ELASTICSEARCH
+from rag.utils.es_conn import ELASTICSEARCH
 from timeit import default_timer as timer
 from rag.utils import rmSpace, findMaxTm
 
@@ -105,12 +107,6 @@ def collect(comm, mod, tm):
 
 def get_minio_binary(bucket, name):
     global MINIO
-    if REDIS_CONN.is_alive():
-        try:
-            r = REDIS_CONN.get("{}/{}".format(bucket, name))
-            if r: return r
-        except Exception as e:
-            cron_logger.warning("Get redis[EXCEPTION]:" + str(e))
     return MINIO.get(bucket, name)
 
 
@@ -129,7 +125,8 @@ def build(row):
     pool = Pool(processes=1)
     try:
         st = timer()
-        thr = pool.apply_async(get_minio_binary, args=(row["kb_id"], row["location"]))
+        bucket, name = File2DocumentService.get_minio_address(doc_id=row["doc_id"])
+        thr = pool.apply_async(get_minio_binary, args=(bucket, name))
         binary = thr.get(timeout=90)
         pool.terminate()
         cron_logger.info(

@@ -15,12 +15,13 @@
 #
 import random
 
-from peewee import Expression
-from api.db.db_models import DB
+from peewee import Expression, JOIN
+from api.db.db_models import DB, File2Document, File
 from api.db import StatusEnum, FileType, TaskStatus
 from api.db.db_models import Task, Document, Knowledgebase, Tenant
 from api.db.services.common_service import CommonService
 from api.db.services.document_service import DocumentService
+from api.utils import current_timestamp
 
 
 class TaskService(CommonService):
@@ -69,6 +70,26 @@ class TaskService(CommonService):
             cls.model.update(progress_msg=cls.model.progress_msg + "\n" + "Task has been received.", progress=random.random()/10.).where(
                 cls.model.id == docs[0]["id"]).execute()
             return docs
+
+    @classmethod
+    @DB.connection_context()
+    def get_ongoing_doc_name(cls):
+        with DB.lock("get_task", -1):
+            docs = cls.model.select(*[Document.id, Document.kb_id, Document.location, File.parent_id]) \
+                .join(Document, on=(cls.model.doc_id == Document.id)) \
+                .join(File2Document, on=(File2Document.document_id == Document.id), join_type=JOIN.LEFT_OUTER) \
+                .join(File, on=(File2Document.file_id == File.id), join_type=JOIN.LEFT_OUTER) \
+                .where(
+                    Document.status == StatusEnum.VALID.value,
+                    Document.run == TaskStatus.RUNNING.value,
+                    ~(Document.type == FileType.VIRTUAL.value),
+                    cls.model.progress < 1,
+                    cls.model.create_time >= current_timestamp() - 1000 * 600
+                )
+            docs = list(docs.dicts())
+            if not docs: return []
+
+            return list(set([(d["parent_id"] if d["parent_id"] else d["kb_id"], d["location"]) for d in docs]))
 
     @classmethod
     @DB.connection_context()

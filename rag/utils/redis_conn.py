@@ -14,16 +14,24 @@ class RedisDB:
 
     def __open__(self):
         try:
-            self.REDIS = redis.Redis(host=self.config.get("host", "redis").split(":")[0],
+            self.REDIS = redis.StrictRedis(host=self.config["host"].split(":")[0],
                                      port=int(self.config.get("host", ":6379").split(":")[1]),
                                      db=int(self.config.get("db", 1)),
-                                     password=self.config.get("password"))
+                                     password=self.config["password"])
         except Exception as e:
             logging.warning("Redis can't be connected.")
         return self.REDIS
 
     def is_alive(self):
         return self.REDIS is not None
+
+    def exist(self, k):
+        if not self.REDIS: return
+        try:
+            return self.REDIS.exists(k)
+        except Exception as e:
+            logging.warning("[EXCEPTION]exist" + str(k) + "||" + str(e))
+            self.__open__()
 
     def get(self, k):
         if not self.REDIS: return
@@ -48,6 +56,17 @@ class RedisDB:
             return True
         except Exception as e:
             logging.warning("[EXCEPTION]set" + str(k) + "||" + str(e))
+            self.__open__()
+        return False
+
+    def transaction(self, key, value, exp=3600):
+        try:
+            pipeline = self.REDIS.pipeline(transaction=True)
+            pipeline.set(key, value, exp, nx=True)
+            pipeline.execute()
+            return True
+        except Exception as e:
+            logging.warning("[EXCEPTION]set" + str(key) + "||" + str(e))
             self.__open__()
         return False
 

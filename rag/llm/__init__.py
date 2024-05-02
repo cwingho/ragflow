@@ -22,10 +22,10 @@ EmbeddingModel = {
     "Ollama": OllamaEmbed,
     "OpenAI": OpenAIEmbed,
     "Xinference": XinferenceEmbed,
-    "Tongyi-Qianwen": HuEmbedding, #QWenEmbed,
+    "Tongyi-Qianwen": DefaultEmbedding, #QWenEmbed,
     "ZHIPU-AI": ZhipuEmbed,
     "FastEmbed": FastEmbed,
-    "QAnything": QAnythingEmbed
+    "Youdao": YoudaoEmbed
 }
 
 

@@ -20,11 +20,12 @@ import random
 from datetime import datetime
 from api.db.db_models import Task
 from api.db.db_utils import bulk_insert_into_db
+from api.db.services.file2document_service import File2DocumentService
 from api.db.services.task_service import TaskService
 from deepdoc.parser import PdfParser
-from deepdoc.parser.excel_parser import HuExcelParser
+from deepdoc.parser.excel_parser import RAGFlowExcelParser
 from rag.settings import cron_logger
-from rag.utils import MINIO
+from rag.utils.minio_conn import MINIO
 from rag.utils import findMaxTm
 import pandas as pd
 from api.db import FileType, TaskStatus
@@ -87,13 +88,8 @@ def dispatch():
 
         tsks = []
         try:
-            file_bin = MINIO.get(r["kb_id"], r["location"])
-            if REDIS_CONN.is_alive():
-                try:
-                    REDIS_CONN.set("{}/{}".format(r["kb_id"], r["location"]), file_bin, 12*60)
-                except Exception as e:
-                    cron_logger.warning("Put into redis[EXCEPTION]:" + str(e))
-
+            bucket, name = File2DocumentService.get_minio_address(doc_id=r["id"])
+            file_bin = MINIO.get(bucket, name)
             if r["type"] == FileType.PDF.value:
                 do_layout = r["parser_config"].get("layout_recognize", True)
                 pages = PdfParser.total_page_number(r["name"], file_bin)
@@ -118,7 +114,7 @@ def dispatch():
                         tsks.append(task)
 
             elif r["parser_id"] == "table":
-                rn = HuExcelParser.row_number(
+                rn = RAGFlowExcelParser.row_number(
                     r["name"], file_bin)
                 for i in range(0, rn, 3000):
                     task = new_task()
@@ -167,7 +163,7 @@ def update_progress():
             info = {
                 "process_duation": datetime.timestamp(
                     datetime.now()) -
-                d["process_begin_at"].timestamp(),
+                                   d["process_begin_at"].timestamp(),
                 "run": status}
             if prg != 0:
                 info["progress"] = prg

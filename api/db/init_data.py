@@ -119,22 +119,12 @@ factory_infos = [{
     "logo": "",
     "tags": "LLM,TEXT EMBEDDING,SPEECH2TEXT,MODERATION",
         "status": "1",
-}, {
-    "name": "QAnything",
+},{
+    "name": "Youdao",
     "logo": "",
     "tags": "LLM,TEXT EMBEDDING,SPEECH2TEXT,MODERATION",
         "status": "1",
-}, {
-    "name": "AzureOpenAI",
-    "logo": "",
-    "tags": "LLM",
-    "status": "1",
-}, {
-    "name": "VLLM",
-    "logo": "",
-    "tags": "LLM",
-    "status": "1",
-}, 
+},
     # {
     #     "name": "文心一言",
     #     "logo": "",
@@ -280,8 +270,7 @@ def init_llm_factory():
             "tags": "LLM,CHAT",
             "max_tokens": 128 * 1000,
             "model_type": LLMType.CHAT.value
-        }, 
-
+        },
         # ------------------------ FastEmbed -----------------------
         {
             "fid": factory_infos[5]["name"],
@@ -334,7 +323,7 @@ def init_llm_factory():
             "max_tokens": 2147483648,
             "model_type": LLMType.EMBEDDING.value
         },
-        # ------------------------ QAnything -----------------------
+        # ------------------------ Youdao -----------------------
         {
             "fid": factory_infos[7]["name"],
             "llm_name": "maidalun1020/bce-embedding-base_v1",
@@ -342,29 +331,6 @@ def init_llm_factory():
             "max_tokens": 512,
             "model_type": LLMType.EMBEDDING.value
         },
-        # ------------------------ Azure OpenAI -----------------------
-        {
-            "fid": factory_infos[8]["name"],
-            "llm_name": "GPT4",
-            "tags": "LLM,CHAT,8k",
-            "max_tokens": 8191,
-            "model_type": LLMType.CHAT.value
-        },
-        # ------------------------ VLLM -----------------------
-        {
-            "fid": factory_infos[9]["name"],
-            "llm_name": "Meta-Llama-3-8B-Instruct",
-            "tags": "LLM,CHAT,8k",
-            "max_tokens": 8191,
-            "model_type": LLMType.CHAT.value
-        },
-        {
-            "fid": factory_infos[9]["name"],
-            "llm_name": "Meta-Llama-3-70B-Instruct",
-            "tags": "LLM,CHAT,8k",
-            "max_tokens": 8191,
-            "model_type": LLMType.CHAT.value
-        }
     ]
     for info in factory_infos:
         try:
@@ -381,7 +347,9 @@ def init_llm_factory():
     LLMService.filter_delete([LLM.fid == "Local"])
     LLMService.filter_delete([LLM.fid == "Moonshot", LLM.llm_name == "flag-embedding"])
     TenantLLMService.filter_delete([TenantLLM.llm_factory == "Moonshot", TenantLLM.llm_name == "flag-embedding"])
-
+    LLMFactoriesService.filter_delete([LLMFactoriesService.model.name == "QAnything"])
+    LLMService.filter_delete([LLMService.model.fid == "QAnything"])
+    TenantLLMService.filter_update([TenantLLMService.model.llm_factory == "QAnything"], {"llm_factory": "Youdao"})
     """
     drop table llm;
     drop table llm_factories;
