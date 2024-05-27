@@ -1,0 +1,24 @@
+FROM infiniflow/ragflow-base:v2.0
+USER  root
+
+WORKDIR /ragflow
+
+ADD ./web ./web
+RUN cd ./web && npm i --force && npm run build
+
+ADD ./api ./api
+ADD ./conf ./conf
+ADD ./deepdoc ./deepdoc
+ADD ./rag ./rag
+ADD ./requirements_custom.txt ./requirements_custom.txt
+
+ENV PYTHONPATH=/ragflow/
+ENV HF_ENDPOINT=https://hf-mirror.com
+
+RUN pip install -r requirements_custom.txt
+
+ADD docker/entrypoint.sh ./entrypoint.sh
+ADD docker/.env ./
+RUN chmod +x ./entrypoint.sh
+
+ENTRYPOINT ["./entrypoint.sh"]
