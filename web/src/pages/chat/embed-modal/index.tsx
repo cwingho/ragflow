@@ -15,7 +15,7 @@ const EmbedModal = ({
   const text = `
   ~~~ html
   <iframe
-  src="https://demo.ragflow.io/chat/share?shared_id=${token}"
+  src="${location.origin}/chat/share?shared_id=${token}"
   style="width: 100%; height: 100%; min-height: 600px"
   frameborder="0"
 >

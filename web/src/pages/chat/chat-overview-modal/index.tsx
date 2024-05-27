@@ -80,14 +80,15 @@ const ChatOverviewModal = ({
             <Flex gap={8} vertical>
               {t('serviceApiEndpoint')}
               <Paragraph copyable className={styles.linkText}>
-                https://demo.ragflow.io/v1/api/
+                {location.origin}
+                /v1/api/
               </Paragraph>
             </Flex>
             <Space size={'middle'}>
               <Button onClick={showApiKeyModal}>{t('apiKey')}</Button>
               <a
                 href={
-                  'https://github.com/infiniflow/ragflow/blob/main/docs/conversation_api.md'
+                  'https://github.com/infiniflow/ragflow/blob/main/docs/references/api.md'
                 }
                 target="_blank"
                 rel="noreferrer"

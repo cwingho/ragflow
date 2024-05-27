@@ -25,6 +25,7 @@ export default {
       comingSoon: '即将推出',
       download: '下载',
       close: '关闭',
+      preview: '预览',
     },
     login: {
       login: '登录',
@@ -254,6 +255,25 @@ export default {
       </p><p>
       如果你要总结的东西需要一篇文章的全部上下文，并且所选LLM的上下文长度覆盖了文档长度，你可以尝试这种方法。
       </p>`,
+      useRaptor: '使用召回增强RAPTOR策略',
+      useRaptorTip: '请参考 https://huggingface.co/papers/2401.18059',
+      prompt: '提示词',
+      promptMessage: '提示词是必填项',
+      promptText: `请总结以下段落。 小心数字，不要编造。 段落如下：
+      {cluster_content}
+以上就是你需要总结的内容。`,
+      maxToken: '最大token数',
+      maxTokenMessage: '最大token数是必填项',
+      threshold: '阈值',
+      thresholdMessage: '阈值是必填项',
+      maxCluster: '最大聚类数',
+      maxClusterMessage: '最大聚类数是必填项',
+      randomSeed: '随机种子',
+      randomSeedMessage: '随机种子是必填项',
+      promptTip: 'LLM提示用于总结。',
+      maxTokenTip: '用于汇总的最大token数。',
+      thresholdTip: '阈值越大，聚类越少。',
+      maxClusterTip: '最大聚类数。',
     },
     chunk: {
       chunk: '解析块',
@@ -369,6 +389,7 @@ export default {
       partialTitle: '部分嵌入',
       extensionTitle: 'Chrome 插件',
       tokenError: '请先创建 Api Token!',
+      searching: '搜索中',
     },
     setting: {
       profile: '概要',
@@ -378,6 +399,7 @@ export default {
       model: '模型提供商',
       modelDescription: '在此设置模型参数和 API Key。',
       team: '团队',
+      system: '系统',
       logout: '登出',
       username: '用户名',
       usernameMessage: '请输入用户名',
@@ -436,6 +458,11 @@ export default {
       modelTypeMessage: '请输入模型类型！',
       baseUrlNameMessage: '请输入基础 Url！',
       ollamaLink: '如何集成 {{name}}',
+      volcModelNameMessage: '请输入模型名称！格式：{"模型名称":"EndpointID"}',
+      addVolcEngineAK: '火山 ACCESS_KEY',
+      volcAKMessage: '请输入VOLC_ACCESS_KEY',
+      addVolcEngineSK: '火山 SECRET_KEY',
+      volcSKMessage: '请输入VOLC_SECRET_KEY',
     },
     message: {
       registered: '注册成功',
@@ -475,7 +502,7 @@ export default {
       knowledgeBase: '知识库',
       size: '大小',
       action: '操作',
-      addToKnowledge: '添加到知识库',
+      addToKnowledge: '链接知识库',
       pleaseSelect: '请选择',
       newFolder: '新建文件夹',
       uploadFile: '上传文件',
@@ -486,6 +513,8 @@ export default {
       directory: '文件夹',
       local: '本地上传',
       s3: 'S3 上传',
+      preview: '预览',
+      fileError: '文件错误',
     },
     footer: {
       profile: 'All rights reserved @ React',

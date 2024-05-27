@@ -60,3 +60,15 @@ export const sortLLmFactoryListBySpecifiedOrder = (list: IFactory[]) => {
 
   return finalList;
 };
+
+export const filterOptionsByInput = (
+  input: string,
+  option: { label: string; value: string } | undefined,
+) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase());
+
+export const toFixed = (value: unknown, fixed = 2) => {
+  if (typeof value === 'number') {
+    return value.toFixed(fixed);
+  }
+  return value;
+};

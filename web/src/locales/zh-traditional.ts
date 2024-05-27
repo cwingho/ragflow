@@ -25,6 +25,7 @@ export default {
       comingSoon: '即將推出',
       download: '下載',
       close: '关闭',
+      preview: '預覽',
     },
     login: {
       login: '登入',
@@ -237,6 +238,25 @@ export default {
         </p><p>
         如果你要總結的東西需要一篇文章的全部上下文，並且所選LLM的上下文長度覆蓋了文檔長度，你可以嘗試這種方法。
         </p>`,
+      useRaptor: '使用RAPTOR文件增強策略',
+      useRaptorTip: '請參考 https://huggingface.co/papers/2401.18059',
+      prompt: '提示詞',
+      promptMessage: '提示詞是必填項',
+      promptText: `请請總結以下段落。 小心數字，不要編造。 段落如下：
+      {cluster_content}
+以上就是你需要總結的內容。`,
+      maxToken: '最大token數',
+      maxTokenMessage: '最大token數是必填項',
+      threshold: '閾值',
+      thresholdMessage: '閾值是必填項',
+      maxCluster: '最大聚類數',
+      maxClusterMessage: '最大聚類數是必填項',
+      randomSeed: '隨機種子',
+      randomSeedMessage: '隨機種子是必填項',
+      promptTip: 'LLM提示用於總結。',
+      maxTokenTip: '用於匯總的最大token數。',
+      thresholdTip: '閾值越大，聚類越少。',
+      maxClusterTip: '最大聚類數。',
     },
     chunk: {
       chunk: '解析塊',
@@ -352,6 +372,7 @@ export default {
       partialTitle: '部分嵌入',
       extensionTitle: 'Chrome 插件',
       tokenError: '請先創建 Api Token!',
+      searching: '搜索中',
     },
     setting: {
       profile: '概述',
@@ -362,6 +383,7 @@ export default {
       modelDescription: '在此設置模型參數和 API Key。',
       team: '團隊',
       logout: '登出',
+      system: '系統',
       username: '使用者名稱',
       usernameMessage: '請輸入用戶名',
       photo: '頭像',
@@ -418,7 +440,12 @@ export default {
       modelNameMessage: '請輸入模型名稱！',
       modelTypeMessage: '請輸入模型類型！',
       baseUrlNameMessage: '請輸入基礎 Url！',
-      ollamaLink: '如何集成Ollama',
+      ollamaLink: '如何集成 {{name}}',
+      volcModelNameMessage: '請輸入模型名稱！格式：{"模型名稱":"EndpointID"}',
+      addVolcEngineAK: '火山 ACCESS_KEY',
+      volcAKMessage: '請輸入VOLC_ACCESS_KEY',
+      addVolcEngineSK: '火山 SECRET_KEY',
+      volcSKMessage: '請輸入VOLC_SECRET_KEY',
     },
     message: {
       registered: '註冊成功',
@@ -458,7 +485,7 @@ export default {
       knowledgeBase: '知識庫',
       size: '大小',
       action: '操作',
-      addToKnowledge: '添加到知識庫',
+      addToKnowledge: '鏈接知識庫',
       pleaseSelect: '請選擇',
       newFolder: '新建文件夾',
       uploadFile: '上傳文件',
@@ -468,6 +495,8 @@ export default {
       directory: '文件夾',
       local: '本地上傳',
       s3: 'S3 上傳',
+      preview: '預覽',
+      fileError: '文件錯誤',
     },
     footer: {
       profile: '“保留所有權利 @ react”',

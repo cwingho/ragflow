@@ -7,13 +7,17 @@ import { useCallback, useMemo, useState } from 'react';
 import { IHighlight } from 'react-pdf-highlighter';
 import { useDispatch, useSelector } from 'umi';
 import { useGetKnowledgeSearchParams } from './routeHook';
+import { useOneNamespaceEffectsLoading } from './storeHooks';
 
-export const useGetDocumentUrl = (documentId: string) => {
-  const url = useMemo(() => {
-    return `${api_host}/document/get/${documentId}`;
-  }, [documentId]);
+export const useGetDocumentUrl = (documentId?: string) => {
+  const getDocumentUrl = useCallback(
+    (id?: string) => {
+      return `${api_host}/document/get/${documentId || id}`;
+    },
+    [documentId],
+  );
 
-  return url;
+  return getDocumentUrl;
 };
 
 export const useGetChunkHighlights = (selectedChunk: IChunk) => {
@@ -221,4 +225,9 @@ export const useRunDocument = () => {
   );
 
   return runDocumentByIds;
+};
+
+export const useSelectRunDocumentLoading = () => {
+  const loading = useOneNamespaceEffectsLoading('kFModel', ['document_run']);
+  return loading;
 };

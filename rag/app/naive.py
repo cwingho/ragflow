@@ -134,14 +134,14 @@ def chunk(filename, binary=None, from_page=0, to_page=100000,
     elif re.search(r"\.xlsx?$", filename, re.IGNORECASE):
         callback(0.1, "Start to parse.")
         excel_parser = ExcelParser()
-        sections = [(excel_parser.html(binary), "")]
+        sections = [(l, "") for l in excel_parser.html(binary) if l]
 
-    elif re.search(r"\.(txt|md)$", filename, re.IGNORECASE):
+    elif re.search(r"\.(txt|md|py|js|java|c|cpp|h|php|go|ts|sh|cs|kt)$", filename, re.IGNORECASE):
         callback(0.1, "Start to parse.")
         txt = ""
         if binary:
             encoding = find_codec(binary)
-            txt = binary.decode(encoding)
+            txt = binary.decode(encoding, errors="ignore")
         else:
             with open(filename, "r") as f:
                 while True:

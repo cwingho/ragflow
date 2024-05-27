@@ -78,6 +78,10 @@ const routes = [
             path: '/user-setting/team',
             component: '@/pages/user-setting/setting-team',
           },
+          {
+            path: '/user-setting/system',
+            component: '@/pages/user-setting/setting-system',
+          },
         ],
       },
       {
@@ -89,6 +93,11 @@ const routes = [
         component: '@/pages/flow',
       },
     ],
+  },
+  {
+    path: 'document/:id',
+    component: '@/pages/document-viewer',
+    layout: false,
   },
   {
     path: '/*',

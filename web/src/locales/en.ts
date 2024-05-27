@@ -25,6 +25,7 @@ export default {
       comingSoon: 'Coming Soon',
       download: 'Download',
       close: 'Close',
+      preview: 'Preview',
     },
     login: {
       login: 'Sign in',
@@ -264,6 +265,26 @@ export default {
     </p><p>
     If you want to summarize something that needs all the context of an article and the selected LLM's context length covers the document length, you can try this method.
     </p>`,
+      useRaptor: 'Use RAPTOR to enhance retrieval',
+      useRaptorTip:
+        'Recursive Abstractive Processing for Tree-Organized Retrieval, please refer to https://huggingface.co/papers/2401.18059',
+      prompt: 'Prompt',
+      promptTip: 'LLM prompt used for summarization.',
+      promptMessage: 'Prompt is required',
+      promptText: `Please summarize the following paragraphs. Be careful with the numbers, do not make things up. Paragraphs as following:
+      {cluster_content}
+The above is the content you need to summarize.`,
+      maxToken: 'Max token',
+      maxTokenTip: 'Maximum token number for summarization.',
+      maxTokenMessage: 'Max token is required',
+      threshold: 'Threshold',
+      thresholdTip: 'The bigger the threshold is the less cluster will be.',
+      thresholdMessage: 'Threshold is required',
+      maxCluster: 'Max cluster',
+      maxClusterTip: 'Maximum cluster number.',
+      maxClusterMessage: 'Max cluster is required',
+      randomSeed: 'Random seed',
+      randomSeedMessage: 'Random seed is required',
     },
     chunk: {
       chunk: 'Chunk',
@@ -381,6 +402,7 @@ export default {
       partialTitle: 'Partial Embed',
       extensionTitle: 'Chrome Extension',
       tokenError: 'Please create API Token first!',
+      searching: 'searching...',
     },
     setting: {
       profile: 'Profile',
@@ -391,6 +413,7 @@ export default {
       model: 'Model Providers',
       modelDescription: 'Set the model parameter and API Key here.',
       team: 'Team',
+      system: 'System',
       logout: 'Log out',
       username: 'Username',
       usernameMessage: 'Please input your username!',
@@ -454,6 +477,11 @@ export default {
       baseUrlNameMessage: 'Please input your base url!',
       vision: 'Does it support Vision?',
       ollamaLink: 'How to integrate {{name}}',
+      volcModelNameMessage: 'Please input your model name! Format: {"ModelName":"EndpointID"}',
+      addVolcEngineAK: 'VOLC ACCESS_KEY',
+      volcAKMessage: 'Please input your VOLC_ACCESS_KEY',
+      addVolcEngineSK: 'VOLC SECRET_KEY',
+      volcSKMessage: 'Please input your SECRET_KEY',
     },
     message: {
       registered: 'Registered!',
@@ -494,7 +522,7 @@ export default {
       knowledgeBase: 'Knowledge Base',
       size: 'Size',
       action: 'Action',
-      addToKnowledge: 'Add to Knowledge Base',
+      addToKnowledge: 'Link to Knowledge Base',
       pleaseSelect: 'Please select',
       newFolder: 'New Folder',
       file: 'File',
@@ -505,6 +533,8 @@ export default {
         'Support for a single or bulk upload. Strictly prohibited from uploading company data or other banned files.',
       local: 'Local uploads',
       s3: 'S3 uploads',
+      preview: 'Preview',
+      fileError: 'File error',
     },
     footer: {
       profile: 'All rights reserved @ React',

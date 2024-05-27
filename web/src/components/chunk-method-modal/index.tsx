@@ -15,7 +15,6 @@ import {
   Modal,
   Select,
   Space,
-  Switch,
   Tooltip,
 } from 'antd';
 import omit from 'lodash/omit';
@@ -23,6 +22,10 @@ import React, { useEffect, useMemo } from 'react';
 import { useFetchParserListOnMount } from './hooks';
 
 import { useTranslate } from '@/hooks/commonHooks';
+import LayoutRecognize from '../layout-recognize';
+import ParseConfiguration, {
+  showRaptorParseConfiguration,
+} from '../parse-configuration';
 import styles from './index.less';
 
 interface IProps extends Omit<IModalManagerChildrenProps, 'showModal'> {
@@ -111,6 +114,7 @@ const ChunkMethodModal: React.FC<IProps> = ({
       onCancel={hideModal}
       afterClose={afterClose}
       confirmLoading={loading}
+      width={700}
     >
       <Space size={[0, 8]} wrap>
         <Form.Item label={t('chunkMethod')} className={styles.chunkMethod}>
@@ -228,17 +232,7 @@ const ChunkMethodModal: React.FC<IProps> = ({
             </Form.List>
           </>
         )}
-        {showOne && (
-          <Form.Item
-            name={['parser_config', 'layout_recognize']}
-            label={t('layoutRecognize')}
-            initialValue={true}
-            valuePropName="checked"
-            tooltip={t('layoutRecognizeTip')}
-          >
-            <Switch />
-          </Form.Item>
-        )}
+        {showOne && <LayoutRecognize></LayoutRecognize>}
         {showPages && (
           <Form.Item
             noStyle
@@ -265,6 +259,9 @@ const ChunkMethodModal: React.FC<IProps> = ({
           </Form.Item>
         )}
         {showMaxTokenNumber && <MaxTokenNumber></MaxTokenNumber>}
+        {showRaptorParseConfiguration(selectedTag) && (
+          <ParseConfiguration></ParseConfiguration>
+        )}
       </Form>
     </Modal>
   );

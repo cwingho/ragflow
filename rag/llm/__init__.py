@@ -25,7 +25,8 @@ EmbeddingModel = {
     "Tongyi-Qianwen": DefaultEmbedding, #QWenEmbed,
     "ZHIPU-AI": ZhipuEmbed,
     "FastEmbed": FastEmbed,
-    "Youdao": YoudaoEmbed
+    "Youdao": YoudaoEmbed,
+    "DeepSeek": DefaultEmbedding
 }
 
 
@@ -46,6 +47,9 @@ ChatModel = {
     "Ollama": OllamaChat,
     "Xinference": XinferenceChat,
     "Moonshot": MoonshotChat,
+
     "AzureOpenAI": AzureGPT4,
-    "VLLM": VLLM
+    "VLLM": VLLM,
+
+    "DeepSeek": DeepSeekChat
 }

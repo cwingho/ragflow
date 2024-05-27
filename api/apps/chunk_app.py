@@ -38,7 +38,7 @@ import re
 @manager.route('/list', methods=['POST'])
 @login_required
 @validate_request("doc_id")
-def list():
+def list_chunk():
     req = request.json
     doc_id = req["doc_id"]
     page = int(req.get("page", 1))
@@ -150,7 +150,7 @@ def set():
             if len(arr) != 2:
                 return get_data_error_result(
                     retmsg="Q&A must be separated by TAB/ENTER key.")
-            q, a = rmPrefix(arr[0]), rmPrefix[arr[1]]
+            q, a = rmPrefix(arr[0]), rmPrefix(arr[1])
             d = beAdoc(d, arr[0], arr[1], not any(
                 [rag_tokenizer.is_chinese(t) for t in q + a]))
 
@@ -229,6 +229,9 @@ def create():
         v = 0.1 * v[0] + 0.9 * v[1]
         d["q_%d_vec" % len(v)] = v.tolist()
         ELASTICSEARCH.upsert([d], search.index_name(tenant_id))
+
+        DocumentService.increment_chunk_num(
+            doc.id, doc.kb_id, c, 1, 0)
         return get_json_result(data={"chunk_id": chunck_id})
     except Exception as e:
         return server_error_response(e)

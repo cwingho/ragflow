@@ -396,7 +396,7 @@ class RAGFlowPdfParser:
             ]
             # features for not concating
             feats = [
-                b.get("layoutno", 0) != b.get("layoutno", 0),
+                b.get("layoutno", 0) != b_.get("layoutno", 0),
                 b["text"].strip()[-1] in "。？！?",
                 self.is_english and b["text"].strip()[-1] in ".!?",
                 b["page_number"] == b_["page_number"] and b_["top"] -
@@ -749,6 +749,7 @@ class RAGFlowPdfParser:
                             "layoutno", "")))
 
                 left, top, right, bott = b["x0"], b["top"], b["x1"], b["bottom"]
+                if right < left: right = left + 1
                 poss.append((pn + self.page_from, left, right, top, bott))
                 return self.page_images[pn] \
                     .crop((left * ZM, top * ZM,
