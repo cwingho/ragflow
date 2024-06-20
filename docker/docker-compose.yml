@@ -11,6 +11,10 @@ services:
         condition: service_healthy
       es01:
         condition: service_healthy
+      es02:
+        condition: service_healthy
+      es03:
+        condition: service_healthy
     image: infiniflow/ragflow:${RAGFLOW_VERSION}
     container_name: ragflow-server
     ports:
