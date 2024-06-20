@@ -137,6 +137,31 @@ factory_infos = [{
     "logo": "",
     "tags": "LLM, TEXT EMBEDDING",
     "status": "1",
+},{
+    "name": "BaiChuan",
+    "logo": "",
+    "tags": "LLM,TEXT EMBEDDING",
+    "status": "1",
+},{
+    "name": "Jina",
+    "logo": "",
+    "tags": "TEXT EMBEDDING, TEXT RE-RANK",
+    "status": "1",
+},{
+    "name": "BAAI",
+    "logo": "",
+    "tags": "TEXT EMBEDDING, TEXT RE-RANK",
+    "status": "1",
+},{
+    "name": "Minimax",
+    "logo": "",
+    "tags": "LLM,TEXT EMBEDDING",
+    "status": "1",
+},{
+    "name": "Mistral",
+    "logo": "",
+    "tags": "LLM,TEXT EMBEDDING",
+    "status": "1",
 }
     # {
     #     "name": "文心一言",
@@ -362,6 +387,13 @@ def init_llm_factory():
             "max_tokens": 512,
             "model_type": LLMType.EMBEDDING.value
         },
+        {
+            "fid": factory_infos[7]["name"],
+            "llm_name": "maidalun1020/bce-reranker-base_v1",
+            "tags": "RE-RANK, 512",
+            "max_tokens": 512,
+            "model_type": LLMType.RERANK.value
+        },
         # ------------------------ DeepSeek -----------------------
         {
             "fid": factory_infos[8]["name"],
@@ -391,6 +423,228 @@ def init_llm_factory():
             "tags": "LLM,CHAT,4k",
             "max_tokens": 4096,
             "model_type": LLMType.CHAT.value
+        },
+        # ------------------------ BaiChuan -----------------------
+        {
+            "fid": factory_infos[10]["name"],
+            "llm_name": "Baichuan2-Turbo",
+            "tags": "LLM,CHAT,32K",
+            "max_tokens": 32768,
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[10]["name"],
+            "llm_name": "Baichuan2-Turbo-192k",
+            "tags": "LLM,CHAT,192K",
+            "max_tokens": 196608,
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[10]["name"],
+            "llm_name": "Baichuan3-Turbo",
+            "tags": "LLM,CHAT,32K",
+            "max_tokens": 32768,
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[10]["name"],
+            "llm_name": "Baichuan3-Turbo-128k",
+            "tags": "LLM,CHAT,128K",
+            "max_tokens": 131072,
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[10]["name"],
+            "llm_name": "Baichuan4",
+            "tags": "LLM,CHAT,128K",
+            "max_tokens": 131072,
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[10]["name"],
+            "llm_name": "Baichuan-Text-Embedding",
+            "tags": "TEXT EMBEDDING",
+            "max_tokens": 512,
+            "model_type": LLMType.EMBEDDING.value
+        },
+        # ------------------------ Jina -----------------------
+        {
+            "fid": factory_infos[11]["name"],
+            "llm_name": "jina-reranker-v1-base-en",
+            "tags": "RE-RANK,8k",
+            "max_tokens": 8196,
+            "model_type": LLMType.RERANK.value
+        },
+        {
+            "fid": factory_infos[11]["name"],
+            "llm_name": "jina-reranker-v1-turbo-en",
+            "tags": "RE-RANK,8k",
+            "max_tokens": 8196,
+            "model_type": LLMType.RERANK.value
+        },
+        {
+            "fid": factory_infos[11]["name"],
+            "llm_name": "jina-reranker-v1-tiny-en",
+            "tags": "RE-RANK,8k",
+            "max_tokens": 8196,
+            "model_type": LLMType.RERANK.value
+        },
+        {
+            "fid": factory_infos[11]["name"],
+            "llm_name": "jina-colbert-v1-en",
+            "tags": "RE-RANK,8k",
+            "max_tokens": 8196,
+            "model_type": LLMType.RERANK.value
+        },
+        {
+            "fid": factory_infos[11]["name"],
+            "llm_name": "jina-embeddings-v2-base-en",
+            "tags": "TEXT EMBEDDING",
+            "max_tokens": 8196,
+            "model_type": LLMType.EMBEDDING.value
+        },
+        {
+            "fid": factory_infos[11]["name"],
+            "llm_name": "jina-embeddings-v2-base-de",
+            "tags": "TEXT EMBEDDING",
+            "max_tokens": 8196,
+            "model_type": LLMType.EMBEDDING.value
+        },
+        {
+            "fid": factory_infos[11]["name"],
+            "llm_name": "jina-embeddings-v2-base-es",
+            "tags": "TEXT EMBEDDING",
+            "max_tokens": 8196,
+            "model_type": LLMType.EMBEDDING.value
+        },
+        {
+            "fid": factory_infos[11]["name"],
+            "llm_name": "jina-embeddings-v2-base-code",
+            "tags": "TEXT EMBEDDING",
+            "max_tokens": 8196,
+            "model_type": LLMType.EMBEDDING.value
+        },
+        {
+            "fid": factory_infos[11]["name"],
+            "llm_name": "jina-embeddings-v2-base-zh",
+            "tags": "TEXT EMBEDDING",
+            "max_tokens": 8196,
+            "model_type": LLMType.EMBEDDING.value
+        },
+        # ------------------------ BAAI -----------------------
+        {
+            "fid": factory_infos[12]["name"],
+            "llm_name": "BAAI/bge-large-zh-v1.5",
+            "tags": "TEXT EMBEDDING,",
+            "max_tokens": 1024,
+            "model_type": LLMType.EMBEDDING.value
+        },
+        {
+            "fid": factory_infos[12]["name"],
+            "llm_name": "BAAI/bge-reranker-v2-m3",
+            "tags": "RE-RANK,2k",
+            "max_tokens": 2048,
+            "model_type": LLMType.RERANK.value
+        },
+        # ------------------------ Minimax -----------------------
+        {
+            "fid": factory_infos[13]["name"],
+            "llm_name": "abab6.5-chat",
+            "tags": "LLM,CHAT,8k",
+            "max_tokens": 8192,
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[13]["name"],
+            "llm_name": "abab6.5s-chat",
+            "tags": "LLM,CHAT,245k",
+            "max_tokens": 245760,
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[13]["name"],
+            "llm_name": "abab6.5t-chat",
+            "tags": "LLM,CHAT,8k",
+            "max_tokens": 8192,
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[13]["name"],
+            "llm_name": "abab6.5g-chat",
+            "tags": "LLM,CHAT,8k",
+            "max_tokens": 8192,
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[13]["name"],
+            "llm_name": "abab5.5-chat",
+            "tags": "LLM,CHAT,16k",
+            "max_tokens": 16384,
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[13]["name"],
+            "llm_name": "abab5.5s-chat",
+            "tags": "LLM,CHAT,8k",
+            "max_tokens": 8192,
+            "model_type": LLMType.CHAT.value
+        },
+        # ------------------------ Mistral -----------------------
+        {
+            "fid": factory_infos[14]["name"],
+            "llm_name": "open-mixtral-8x22b",
+            "tags": "LLM,CHAT,64k",
+            "max_tokens": 64000,
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[14]["name"],
+            "llm_name": "open-mixtral-8x7b",
+            "tags": "LLM,CHAT,32k",
+            "max_tokens": 32000,
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[14]["name"],
+            "llm_name": "open-mistral-7b",
+            "tags": "LLM,CHAT,32k",
+            "max_tokens": 32000,
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[14]["name"],
+            "llm_name": "mistral-large-latest",
+            "tags": "LLM,CHAT,32k",
+            "max_tokens": 32000,
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[14]["name"],
+            "llm_name": "mistral-small-latest",
+            "tags": "LLM,CHAT,32k",
+            "max_tokens": 32000,
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[14]["name"],
+            "llm_name": "mistral-medium-latest",
+            "tags": "LLM,CHAT,32k",
+            "max_tokens": 32000,
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[14]["name"],
+            "llm_name": "codestral-latest",
+            "tags": "LLM,CHAT,32k",
+            "max_tokens": 32000,
+            "model_type": LLMType.CHAT.value
+        },
+        {
+            "fid": factory_infos[14]["name"],
+            "llm_name": "mistral-embed",
+            "tags": "LLM,CHAT,8k",
+            "max_tokens": 8192,
+            "model_type": LLMType.EMBEDDING
         },
     ]
     for info in factory_infos:

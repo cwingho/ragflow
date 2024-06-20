@@ -16,17 +16,21 @@
 from .embedding_model import *
 from .chat_model import *
 from .cv_model import *
+from .rerank_model import *
 
 
 EmbeddingModel = {
     "Ollama": OllamaEmbed,
     "OpenAI": OpenAIEmbed,
     "Xinference": XinferenceEmbed,
-    "Tongyi-Qianwen": DefaultEmbedding, #QWenEmbed,
+    "Tongyi-Qianwen": QWenEmbed,
     "ZHIPU-AI": ZhipuEmbed,
     "FastEmbed": FastEmbed,
     "Youdao": YoudaoEmbed,
-    "DeepSeek": DefaultEmbedding
+    "BaiChuan": BaiChuanEmbed,
+    "Jina": JinaEmbed,
+    "BAAI": DefaultEmbedding,
+    "Mistral": MistralEmbed
 }
 
 
@@ -47,9 +51,19 @@ ChatModel = {
     "Ollama": OllamaChat,
     "Xinference": XinferenceChat,
     "Moonshot": MoonshotChat,
-
     "AzureOpenAI": AzureGPT4,
     "VLLM": VLLM,
-
-    "DeepSeek": DeepSeekChat
+    "DeepSeek": DeepSeekChat,
+    "VolcEngine": VolcEngineChat,
+    "BaiChuan": BaiChuanChat,
+    "MiniMax": MiniMaxChat,
+    "Mistral": MistralChat
 }
+
+
+RerankModel = {
+    "BAAI": DefaultRerank,
+    "Jina": JinaRerank,
+    "Youdao": YoudaoRerank,
+}
+

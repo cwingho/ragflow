@@ -437,6 +437,10 @@ class Tenant(DataBaseModel):
         max_length=128,
         null=False,
         help_text="default image to text model ID")
+    rerank_id = CharField(
+        max_length=128,
+        null=False,
+        help_text="default rerank model ID")
     parser_ids = CharField(
         max_length=256,
         null=False,
@@ -771,11 +775,16 @@ class Dialog(DataBaseModel):
     similarity_threshold = FloatField(default=0.2)
     vector_similarity_weight = FloatField(default=0.3)
     top_n = IntegerField(default=6)
+    top_k = IntegerField(default=1024)
     do_refer = CharField(
         max_length=1,
         null=False,
         help_text="it needs to insert reference index into answer or not",
         default="1")
+    rerank_id = CharField(
+        max_length=128,
+        null=False,
+        help_text="default rerank model ID")
 
     kb_ids = JSONField(null=False, default=[])
     status = CharField(
@@ -824,12 +833,55 @@ class API4Conversation(DataBaseModel):
         db_table = "api_4_conversation"
 
 
+class UserCanvas(DataBaseModel):
+    id = CharField(max_length=32, primary_key=True)
+    avatar = TextField(null=True, help_text="avatar base64 string")
+    user_id = CharField(max_length=255, null=False, help_text="user_id")
+    title = CharField(max_length=255, null=True, help_text="Canvas title")
+    description = TextField(null=True, help_text="Canvas description")
+    canvas_type = CharField(max_length=32, null=True, help_text="Canvas type")
+    dsl = JSONField(null=True, default={})
+
+    class Meta:
+        db_table = "user_canvas"
+
+
+class CanvasTemplate(DataBaseModel):
+    id = CharField(max_length=32, primary_key=True)
+    avatar = TextField(null=True, help_text="avatar base64 string")
+    title = CharField(max_length=255, null=True, help_text="Canvas title")
+    description = TextField(null=True, help_text="Canvas description")
+    canvas_type = CharField(max_length=32, null=True, help_text="Canvas type")
+    dsl = JSONField(null=True, default={})
+
+    class Meta:
+        db_table = "canvas_template"
+
+
 def migrate_db():
-    try:
         with DB.transaction():
             migrator = MySQLMigrator(DB)
-            migrate(
-                migrator.add_column('file', 'source_type', CharField(max_length=128, null=False, default="", help_text="where dose this document come from"))
-            )
-    except Exception as e:
-        pass
+            try:
+                migrate(
+                    migrator.add_column('file', 'source_type', CharField(max_length=128, null=False, default="", help_text="where dose this document come from"))
+                )
+            except Exception as e:
+                pass
+            try:
+                migrate(
+                    migrator.add_column('tenant', 'rerank_id', CharField(max_length=128, null=False, default="BAAI/bge-reranker-v2-m3", help_text="default rerank model ID"))
+                )
+            except Exception as e:
+                pass
+            try:
+                migrate(
+                    migrator.add_column('dialog', 'rerank_id', CharField(max_length=128, null=False, default="", help_text="default rerank model ID"))
+                )
+            except Exception as e:
+                pass
+            try:
+                migrate(
+                    migrator.add_column('dialog', 'top_k', IntegerField(default=1024))
+                )
+            except Exception as e:
+                pass
