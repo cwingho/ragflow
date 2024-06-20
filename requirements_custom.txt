@@ -1,2 +1,5 @@
-umap
-volcengine
+umap-learn
+volcengine==1.0.141
+roman-numbers==1.0.2
+word2number==1.1
+cn2an==0.5.22
