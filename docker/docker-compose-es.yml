@@ -7,8 +7,11 @@ services:
       - cluster.name=rag_flow
       - discovery.seed_hosts=es02,es03
       - cluster.initial_master_nodes=es01,es02,es03
-      - bootstrap.memory_lock=true
-      - xpack.security.enabled=false
+      - bootstrap.memory_lock=false
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - TZ=${TIMEZONE}
       - cluster.max_shards_per_node=4096
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     mem_limit: ${MEM_LIMIT}
@@ -37,8 +40,11 @@ services:
       - cluster.name=rag_flow
       - discovery.seed_hosts=es01,es03
       - cluster.initial_master_nodes=es01,es02,es03
-      - bootstrap.memory_lock=true
-      - xpack.security.enabled=false
+      - bootstrap.memory_lock=false
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - TZ=${TIMEZONE}
       - cluster.max_shards_per_node=4096
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     mem_limit: ${MEM_LIMIT}
@@ -60,8 +66,11 @@ services:
       - cluster.name=rag_flow
       - discovery.seed_hosts=es01,es02
       - cluster.initial_master_nodes=es01,es02,es03
-      - bootstrap.memory_lock=true
-      - xpack.security.enabled=false
+      - bootstrap.memory_lock=false
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=false
+      - xpack.security.transport.ssl.enabled=false
+      - TZ=${TIMEZONE}
       - cluster.max_shards_per_node=4096
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     mem_limit: ${MEM_LIMIT}
