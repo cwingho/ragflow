@@ -17,7 +17,6 @@ services:
       - xpack.security.enabled=true
       - xpack.security.http.ssl.enabled=false
       - xpack.security.transport.ssl.enabled=false
-      - indices.query.bool.max_clause_count=8192
       - TZ=${TIMEZONE}
     mem_limit: ${MEM_LIMIT}
     ulimits:
@@ -48,7 +47,6 @@ services:
       - xpack.security.enabled=true
       - xpack.security.http.ssl.enabled=false
       - xpack.security.transport.ssl.enabled=false
-      - indices.query.bool.max_clause_count=8192
       - TZ=${TIMEZONE}
     mem_limit: ${MEM_LIMIT}
     ulimits:
@@ -79,7 +77,6 @@ services:
       - xpack.security.enabled=true
       - xpack.security.http.ssl.enabled=false
       - xpack.security.transport.ssl.enabled=false
-      - indices.query.bool.max_clause_count=8192
       - TZ=${TIMEZONE}
     mem_limit: ${MEM_LIMIT}
     ulimits:
