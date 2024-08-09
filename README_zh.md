@@ -17,7 +17,7 @@
     <a href="https://demo.ragflow.io" target="_blank">
         <img alt="Static Badge" src="https://img.shields.io/badge/Online-Demo-4e6b99"></a>
     <a href="https://hub.docker.com/r/infiniflow/ragflow" target="_blank">
-        <img src="https://img.shields.io/badge/docker_pull-ragflow:v0.7.0-brightgreen" alt="docker pull infiniflow/ragflow:v0.7.0"></a>
+        <img src="https://img.shields.io/badge/docker_pull-ragflow:v0.9.0-brightgreen" alt="docker pull infiniflow/ragflow:v0.9.0"></a>
     <a href="https://github.com/infiniflow/ragflow/blob/main/LICENSE">
     <img height="21" src="https://img.shields.io/badge/License-Apache--2.0-ffffff?labelColor=d4eaf7&color=2e6cc4" alt="license">
   </a>
@@ -40,19 +40,24 @@
 请登录网址 [https://demo.ragflow.io](https://demo.ragflow.io) 试用 demo。
 <div align="center" style="margin-top:20px;margin-bottom:20px;">
 <img src="https://github.com/infiniflow/ragflow/assets/7248/2f6baa3e-1092-4f11-866d-36f6a9d075e5" width="1200"/>
+<img src="https://github.com/infiniflow/ragflow/assets/12318111/b083d173-dadc-4ea9-bdeb-180d7df514eb" width="1200"/>
 </div>
 
 
-## 📌 近期更新
+## 🔥 近期更新
 
-- 2024-06-14 Q&A 解析方式支持 PDF 文件。
+- 2024-08-02 支持 GraphRAG 启发于 [graphrag](https://github.com/microsoft/graphrag) 和思维导图。
+- 2024-07-23 支持解析音频文件。
+- 2024-07-21 支持更多的大模型供应商(LocalAI/OpenRouter/StepFun/Nvidia)。
+- 2024-07-18 在Graph中支持算子：Wikipedia、PubMed、Baidu和Duckduckgo。
+- 2024-07-08 支持 Agentic RAG: 基于 [Graph](./graph/README.md) 的工作流。
+- 2024-06-27 Q&A 解析方式支持 Markdown 文件和 Docx 文件。 
+- 2024-06-27 支持提取出 Docx 文件中的图片。
+- 2024-06-27 支持提取出 Markdown 文件中的表格。
 - 2024-06-06 支持 [Self-RAG](https://huggingface.co/papers/2310.11511) ，在对话设置里面默认勾选。
 - 2024-05-30 集成 [BCE](https://github.com/netease-youdao/BCEmbedding) 和 [BGE](https://github.com/FlagOpen/FlagEmbedding) 重排序模型。
-- 2024-05-28 集成大模型 Baichuan 和火山方舟。
 - 2024-05-23 实现 [RAPTOR](https://arxiv.org/html/2401.18059v1) 提供更好的文本检索。
-- 2024-05-21 支持流式结果输出和文本块获取API。
 - 2024-05-15 集成大模型 OpenAI GPT-4o。
-- 2024-05-08 集成大模型 DeepSeek。
 
 ## 🌟 主要功能
 
@@ -135,7 +140,7 @@
    $ docker compose -f docker-compose-CN.yml up -d
    ```
 
-   > 请注意，运行上述命令会自动下载 RAGFlow 的开发版本 docker 镜像。如果你想下载并运行特定版本的 docker 镜像，请在 docker/.env 文件中找到 RAGFLOW_VERSION 变量，将其改为对应版本。例如 RAGFLOW_VERSION=v0.7.0，然后运行上述命令。
+   > 请注意，运行上述命令会自动下载 RAGFlow 的开发版本 docker 镜像。如果你想下载并运行特定版本的 docker 镜像，请在 docker/.env 文件中找到 RAGFLOW_VERSION 变量，将其改为对应版本。例如 RAGFLOW_VERSION=v0.9.0，然后运行上述命令。
 
    > 核心镜像文件大约 9 GB，可能需要一定时间拉取。请耐心等待。
 
@@ -197,7 +202,7 @@
 ```bash
 $ git clone https://github.com/infiniflow/ragflow.git
 $ cd ragflow/
-$ docker build -t infiniflow/ragflow:v0.7.0 .
+$ docker build -t infiniflow/ragflow:v0.9.0 .
 $ cd ragflow/docker
 $ chmod +x ./entrypoint.sh
 $ docker compose up -d
@@ -304,6 +309,10 @@ $ systemctl start nginx
 ## 🙌 贡献指南
 
 RAGFlow 只有通过开源协作才能蓬勃发展。秉持这一精神,我们欢迎来自社区的各种贡献。如果您有意参与其中,请查阅我们的[贡献者指南](./docs/references/CONTRIBUTING.md) 。
+
+## 🤝 商务合作
+
+- [预约咨询](https://aao615odquw.feishu.cn/share/base/form/shrcnjw7QleretCLqh1nuPo1xxh)
 
 ## 👥 加入社区
 

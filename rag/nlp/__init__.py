@@ -24,6 +24,7 @@ import copy
 import roman_numbers as r
 from word2number import w2n
 from cn2an import cn2an
+from PIL import Image
 
 all_codecs = [
     'utf-8', 'gb2312', 'gbk', 'utf_16', 'ascii', 'big5', 'big5hkscs',
@@ -227,7 +228,7 @@ def tokenize(d, t, eng):
     d["content_sm_ltks"] = rag_tokenizer.fine_grained_tokenize(d["content_ltks"])
 
 
-def tokenize_chunks(chunks, doc, eng, pdf_parser):
+def tokenize_chunks(chunks, doc, eng, pdf_parser=None):
     res = []
     # wrap up as es documents
     for ck in chunks:
@@ -241,6 +242,19 @@ def tokenize_chunks(chunks, doc, eng, pdf_parser):
                 ck = pdf_parser.remove_tag(ck)
             except NotImplementedError as e:
                 pass
+        tokenize(d, ck, eng)
+        res.append(d)
+    return res
+
+
+def tokenize_chunks_docx(chunks, doc, eng, images):
+    res = []
+    # wrap up as es documents
+    for ck, image in zip(chunks, images):
+        if len(ck.strip()) == 0:continue
+        print("--", ck)
+        d = copy.deepcopy(doc)
+        d["image"] = image
         tokenize(d, ck, eng)
         res.append(d)
     return res
@@ -330,7 +344,7 @@ def make_colon_as_title(sections):
         if txt[-1] not in ":：":
             continue
         txt = txt[::-1]
-        arr = re.split(r"([。？！!?;；]| .)", txt)
+        arr = re.split(r"([。？！!?;；]| \.)", txt)
         if len(arr) < 2 or len(arr[1]) < 32:
             continue
         sections.insert(i - 1, (arr[0][::-1], "title"))
@@ -469,9 +483,12 @@ def naive_merge(sections, chunk_token_num=128, delimiter="\n。；！？"):
     def add_chunk(t, pos):
         nonlocal cks, tk_nums, delimiter
         tnum = num_tokens_from_string(t)
+        if not pos: pos = ""
         if tnum < 8:
             pos = ""
+        # Ensure that the length of the merged chunk does not exceed chunk_token_num  
         if tk_nums[-1] > chunk_token_num:
+
             if t.find(pos) < 0:
                 t += pos
             cks.append(t)
@@ -497,3 +514,80 @@ def naive_merge(sections, chunk_token_num=128, delimiter="\n。；！？"):
             add_chunk(sec[s: e], pos)
 
     return cks
+
+
+def docx_question_level(p, bull = -1):
+    txt = re.sub(r"\u3000", " ", p.text).strip()
+    if p.style.name.startswith('Heading'):
+        return int(p.style.name.split(' ')[-1]), txt
+    else:
+        if bull < 0:
+            return 0, txt
+        for j, title in enumerate(BULLET_PATTERN[bull]):
+            if re.match(title, txt):
+                return j+1, txt
+    return len(BULLET_PATTERN[bull]), txt
+
+    
+def concat_img(img1, img2):
+    if img1 and not img2:
+        return img1
+    if not img1 and img2:
+        return img2
+    if not img1 and not img2:
+        return None
+    width1, height1 = img1.size
+    width2, height2 = img2.size
+
+    new_width = max(width1, width2)
+    new_height = height1 + height2
+    new_image = Image.new('RGB', (new_width, new_height))
+
+    new_image.paste(img1, (0, 0))
+    new_image.paste(img2, (0, height1))
+
+    return new_image
+
+
+def naive_merge_docx(sections, chunk_token_num=128, delimiter="\n。；！？"):
+    if not sections:
+        return [], []
+
+    cks = [""]
+    images = [None]
+    tk_nums = [0]
+
+    def add_chunk(t, image, pos=""):
+        nonlocal cks, tk_nums, delimiter
+        tnum = num_tokens_from_string(t)
+        if tnum < 8:
+            pos = ""
+        if tk_nums[-1] > chunk_token_num:
+            if t.find(pos) < 0:
+                t += pos
+            cks.append(t)
+            images.append(image)
+            tk_nums.append(tnum)
+        else:
+            if cks[-1].find(pos) < 0:
+                t += pos
+            cks[-1] += t
+            images[-1] = concat_img(images[-1], image)
+            tk_nums[-1] += tnum
+
+    for sec, image in sections:
+        add_chunk(sec, image, '')
+
+    return cks, images
+
+
+def keyword_extraction(chat_mdl, content):
+    prompt = """
+You're a question analyzer. 
+1. Please give me the most important keyword/phrase of this question.
+Answer format: (in language of user's question)
+ - keyword: 
+"""
+    kwd = chat_mdl.chat(prompt, [{"role": "user",  "content": content}], {"temperature": 0.2})
+    if isinstance(kwd, tuple): return kwd[0]
+    return kwd

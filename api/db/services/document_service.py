@@ -61,6 +61,35 @@ class DocumentService(CommonService):
 
     @classmethod
     @DB.connection_context()
+    def list_documents_in_dataset(cls, dataset_id, offset, count, order_by, descend, keywords):
+        if keywords:
+            docs = cls.model.select().where(
+                (cls.model.kb_id == dataset_id),
+                (fn.LOWER(cls.model.name).contains(keywords.lower()))
+            )
+        else:
+            docs = cls.model.select().where(cls.model.kb_id == dataset_id)
+
+        total = docs.count()
+
+        if descend == 'True':
+            docs = docs.order_by(cls.model.getter_by(order_by).desc())
+        if descend == 'False':
+            docs = docs.order_by(cls.model.getter_by(order_by).asc())
+
+        docs = list(docs.dicts())
+        docs_length = len(docs)
+
+        if offset < 0 or offset > docs_length:
+            raise IndexError("Offset is out of the valid range.")
+
+        if count == -1:
+            return docs[offset:], total
+
+        return docs[offset:offset + count], total
+
+    @classmethod
+    @DB.connection_context()
     def insert(cls, doc):
         if not cls.save(**doc):
             raise RuntimeError("Database error (Document)!")
@@ -113,7 +142,7 @@ class DocumentService(CommonService):
     @classmethod
     @DB.connection_context()
     def get_unfinished_docs(cls):
-        fields = [cls.model.id, cls.model.process_begin_at, cls.model.parser_config, cls.model.progress_msg]
+        fields = [cls.model.id, cls.model.process_begin_at, cls.model.parser_config, cls.model.progress_msg, cls.model.run]
         docs = cls.model.select(*fields) \
             .where(
                 cls.model.status == StatusEnum.VALID.value,
@@ -139,7 +168,26 @@ class DocumentService(CommonService):
             chunk_num).where(
             Knowledgebase.id == kb_id).execute()
         return num
-
+    
+    @classmethod
+    @DB.connection_context()
+    def decrement_chunk_num(cls, doc_id, kb_id, token_num, chunk_num, duation):
+        num = cls.model.update(token_num=cls.model.token_num - token_num,
+                               chunk_num=cls.model.chunk_num - chunk_num,
+                               process_duation=cls.model.process_duation + duation).where(
+            cls.model.id == doc_id).execute()
+        if num == 0:
+            raise LookupError(
+                "Document not found which is supposed to be there")
+        num = Knowledgebase.update(
+            token_num=Knowledgebase.token_num -
+            token_num,
+            chunk_num=Knowledgebase.chunk_num -
+            chunk_num
+        ).where(
+            Knowledgebase.id == kb_id).execute()
+        return num
+    
     @classmethod
     @DB.connection_context()
     def clear_chunk_num(cls, doc_id):
@@ -263,12 +311,14 @@ class DocumentService(CommonService):
                 prg = 0
                 finished = True
                 bad = 0
-                status = TaskStatus.RUNNING.value
+                e, doc = DocumentService.get_by_id(d["id"])
+                status = doc.run#TaskStatus.RUNNING.value
                 for t in tsks:
                     if 0 <= t.progress < 1:
                         finished = False
                     prg += t.progress if t.progress >= 0 else 0
-                    msg.append(t.progress_msg)
+                    if t.progress_msg not in msg:
+                        msg.append(t.progress_msg)
                     if t.progress == -1:
                         bad += 1
                 prg /= len(tsks)
@@ -302,6 +352,17 @@ class DocumentService(CommonService):
     def get_kb_doc_count(cls, kb_id):
         return len(cls.model.select(cls.model.id).where(
             cls.model.kb_id == kb_id).dicts())
+
+
+    @classmethod
+    @DB.connection_context()
+    def do_cancel(cls, doc_id):
+        try:
+            _, doc = DocumentService.get_by_id(doc_id)
+            return doc.run == TaskStatus.CANCEL.value or doc.progress < 0
+        except Exception as e:
+            pass
+        return False
 
 
 def queue_raptor_tasks(doc):

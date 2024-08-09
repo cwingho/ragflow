@@ -14,13 +14,15 @@
 #  limitations under the License.
 #
 import datetime
+import json
+import traceback
 
 from flask import request
 from flask_login import login_required, current_user
 from elasticsearch_dsl import Q
 
 from rag.app.qa import rmPrefix, beAdoc
-from rag.nlp import search, rag_tokenizer
+from rag.nlp import search, rag_tokenizer, keyword_extraction
 from rag.utils.es_conn import ELASTICSEARCH
 from rag.utils import rmSpace
 from api.db import LLMType, ParserType
@@ -29,7 +31,7 @@ from api.db.services.llm_service import TenantLLMService
 from api.db.services.user_service import UserTenantService
 from api.utils.api_utils import server_error_response, get_data_error_result, validate_request
 from api.db.services.document_service import DocumentService
-from api.settings import RetCode, retrievaler
+from api.settings import RetCode, retrievaler, kg_retrievaler
 from api.utils.api_utils import get_json_result
 import hashlib
 import re
@@ -61,7 +63,8 @@ def list_chunk():
         for id in sres.ids:
             d = {
                 "chunk_id": id,
-                "content_with_weight": rmSpace(sres.highlight[id]) if question and id in  sres.highlight else sres.field[id].get(
+                "content_with_weight": rmSpace(sres.highlight[id]) if question and id in sres.highlight else sres.field[
+                    id].get(
                     "content_with_weight", ""),
                 "doc_id": sres.field[id]["doc_id"],
                 "docnm_kwd": sres.field[id]["docnm_kwd"],
@@ -136,11 +139,11 @@ def set():
         tenant_id = DocumentService.get_tenant_id(req["doc_id"])
         if not tenant_id:
             return get_data_error_result(retmsg="Tenant not found!")
-        
+
         embd_id = DocumentService.get_embd_id(req["doc_id"])
         embd_mdl = TenantLLMService.model_instance(
             tenant_id, LLMType.EMBEDDING.value, embd_id)
-        
+
         e, doc = DocumentService.get_by_id(req["doc_id"])
         if not e:
             return get_data_error_result(retmsg="Document not found!")
@@ -185,13 +188,19 @@ def switch():
 
 @manager.route('/rm', methods=['POST'])
 @login_required
-@validate_request("chunk_ids")
+@validate_request("chunk_ids", "doc_id")
 def rm():
     req = request.json
     try:
         if not ELASTICSEARCH.deleteByQuery(
                 Q("ids", values=req["chunk_ids"]), search.index_name(current_user.id)):
             return get_data_error_result(retmsg="Index updating failure")
+        e, doc = DocumentService.get_by_id(req["doc_id"])
+        if not e:
+            return get_data_error_result(retmsg="Document not found!")
+        deleted_chunk_ids = req["chunk_ids"]
+        chunk_number = len(deleted_chunk_ids)
+        DocumentService.decrement_chunk_num(doc.id, doc.kb_id, 1, chunk_number, 0)
         return get_json_result(data=True)
     except Exception as e:
         return server_error_response(e)
@@ -224,13 +233,12 @@ def create():
         tenant_id = DocumentService.get_tenant_id(req["doc_id"])
         if not tenant_id:
             return get_data_error_result(retmsg="Tenant not found!")
-        
+
         embd_id = DocumentService.get_embd_id(req["doc_id"])
         embd_mdl = TenantLLMService.model_instance(
             tenant_id, LLMType.EMBEDDING.value, embd_id)
-        
+
         v, c = embd_mdl.encode([doc.name, req["content_with_weight"]])
-        DocumentService.increment_chunk_num(req["doc_id"], doc.kb_id, c, 1, 0)
         v = 0.1 * v[0] + 0.9 * v[1]
         d["q_%d_vec" % len(v)] = v.tolist()
         ELASTICSEARCH.upsert([d], search.index_name(tenant_id))
@@ -268,9 +276,14 @@ def retrieval_test():
             rerank_mdl = TenantLLMService.model_instance(
                 kb.tenant_id, LLMType.RERANK.value, llm_name=req["rerank_id"])
 
-        ranks = retrievaler.retrieval(question, embd_mdl, kb.tenant_id, [kb_id], page, size,
-                                      similarity_threshold, vector_similarity_weight, top,
-                                      doc_ids, rerank_mdl=rerank_mdl)
+        if req.get("keyword", False):
+            chat_mdl = TenantLLMService.model_instance(kb.tenant_id, LLMType.CHAT)
+            question += keyword_extraction(chat_mdl, question)
+
+        retr = retrievaler if kb.parser_id != ParserType.KG else kg_retrievaler
+        ranks = retr.retrieval(question, embd_mdl, kb.tenant_id, [kb_id], page, size,
+                               similarity_threshold, vector_similarity_weight, top,
+                               doc_ids, rerank_mdl=rerank_mdl)
         for c in ranks["chunks"]:
             if "vector" in c:
                 del c["vector"]
@@ -282,34 +295,24 @@ def retrieval_test():
                                    retcode=RetCode.DATA_ERROR)
         return server_error_response(e)
 
-@manager.route('/rag', methods=['POST'])
-@validate_request("kb_id", "question")
-def rag():
-    req = request.json
-    page = int(req.get("page", 1))
-    size = int(req.get("size", 30))
-    question = req["question"]
-    kb_id = req["kb_id"]
-    doc_ids = req.get("doc_ids", [])
-    similarity_threshold = float(req.get("similarity_threshold", 0.2))
-    vector_similarity_weight = float(req.get("vector_similarity_weight", 0.3))
-    top = int(req.get("top_k", 1024))
-    try:
-        e, kb = KnowledgebaseService.get_by_id(kb_id)
-        if not e:
-            return get_data_error_result(retmsg="Knowledgebase not found!")
 
-        embd_mdl = TenantLLMService.model_instance(
-            kb.tenant_id, LLMType.EMBEDDING.value, llm_name=kb.embd_id)
-        ranks = retrievaler.retrieval(question, embd_mdl, kb.tenant_id, [kb_id], page, size, similarity_threshold,
-                                      vector_similarity_weight, top, doc_ids)
-        for c in ranks["chunks"]:
-            if "vector" in c:
-                del c["vector"]
+@manager.route('/knowledge_graph', methods=['GET'])
+@login_required
+def knowledge_graph():
+    doc_id = request.args["doc_id"]
+    req = {
+        "doc_ids":[doc_id],
+        "knowledge_graph_kwd": ["graph", "mind_map"]
+    }
+    tenant_id = DocumentService.get_tenant_id(doc_id)
+    sres = retrievaler.search(req, search.index_name(tenant_id))
+    obj = {"graph": {}, "mind_map": {}}
+    for id in sres.ids[:2]:
+        ty = sres.field[id]["knowledge_graph_kwd"]
+        try:
+            obj[ty] = json.loads(sres.field[id]["content_with_weight"])
+        except Exception as e:
+            print(traceback.format_exc(), flush=True)
 
-        return get_json_result(data=ranks)
-    except Exception as e:
-        if str(e).find("not_found") > 0:
-            return get_json_result(data=False, retmsg=f'No chunk found! Check the chunk status please!',
-                                   retcode=RetCode.DATA_ERROR)
-        return server_error_response(e)
+    return get_json_result(data=obj)
+

@@ -199,9 +199,13 @@ def completion():
             conv.message[-1] = {"role": "assistant", "content": ans["answer"]}
 
         def rename_field(ans):
-            for chunk_i in ans['reference'].get('chunks', []):
-                chunk_i['doc_name'] = chunk_i['docnm_kwd']
-                chunk_i.pop('docnm_kwd')
+            reference = ans['reference']
+            if not isinstance(reference, dict):
+                return
+            for chunk_i in reference.get('chunks', []):
+                if 'docnm_kwd' in chunk_i:
+                    chunk_i['doc_name'] = chunk_i['docnm_kwd']
+                    chunk_i.pop('docnm_kwd')
 
         def stream():
             nonlocal dia, msg, req, conv
@@ -232,10 +236,7 @@ def completion():
                 API4ConversationService.append_message(conv.id, conv.to_dict())
                 break
 
-            for chunk_i in answer['reference'].get('chunks',[]):
-                chunk_i['doc_name'] = chunk_i['docnm_kwd']
-                chunk_i.pop('docnm_kwd')
-
+            rename_field(answer)
             return get_json_result(data=answer)
 
     except Exception as e:
@@ -252,6 +253,8 @@ def get(conversation_id):
 
         conv = conv.to_dict()
         for referenct_i in conv['reference']:
+            if referenct_i is None or len(referenct_i) == 0:
+                continue
             for chunk_i in referenct_i['chunks']:
                 if 'docnm_kwd' in chunk_i.keys():
                     chunk_i['doc_name'] = chunk_i['docnm_kwd']
@@ -335,6 +338,8 @@ def upload():
                 doc["parser_id"] = request.form.get("parser_id").strip()
         if doc["type"] == FileType.VISUAL:
             doc["parser_id"] = ParserType.PICTURE.value
+        if doc["type"] == FileType.AURAL:
+            doc["parser_id"] = ParserType.AUDIO.value
         if re.search(r"\.(ppt|pptx|pages)$", filename):
             doc["parser_id"] = ParserType.PRESENTATION.value
 
@@ -573,6 +578,7 @@ def completion_faq():
                     response = MINIO.get(bkt, nm)
                     data_type_picture["url"] = base64.b64encode(response).decode('utf-8')
                     data.append(data_type_picture)
+                    break
                 except Exception as e:
                     return server_error_response(e)
 
@@ -581,3 +587,55 @@ def completion_faq():
 
     except Exception as e:
         return server_error_response(e)
+
+
+@manager.route('/retrieval', methods=['POST'])
+@validate_request("kb_id", "question")
+def retrieval():
+    token = request.headers.get('Authorization').split()[1]
+    objs = APIToken.query(token=token)
+    if not objs:
+        return get_json_result(
+            data=False, retmsg='Token is not valid!"', retcode=RetCode.AUTHENTICATION_ERROR)
+
+    req = request.json
+    kb_id = req.get("kb_id")
+    doc_ids = req.get("doc_ids", [])
+    question = req.get("question")
+    page = int(req.get("page", 1))
+    size = int(req.get("size", 30))
+    similarity_threshold = float(req.get("similarity_threshold", 0.2))
+    vector_similarity_weight = float(req.get("vector_similarity_weight", 0.3))
+    top = int(req.get("top_k", 1024))
+
+    try:
+        e, kb = KnowledgebaseService.get_by_id(kb_id)
+        if not e:
+            return get_data_error_result(retmsg="Knowledgebase not found!")
+
+        embd_mdl = TenantLLMService.model_instance(
+            kb.tenant_id, LLMType.EMBEDDING.value, llm_name=kb.embd_id)
+
+        rerank_mdl = None
+        if req.get("rerank_id"):
+            rerank_mdl = TenantLLMService.model_instance(
+                kb.tenant_id, LLMType.RERANK.value, llm_name=req["rerank_id"])
+
+        if req.get("keyword", False):
+            chat_mdl = TenantLLMService.model_instance(kb.tenant_id, LLMType.CHAT)
+            question += keyword_extraction(chat_mdl, question)
+
+        ranks = retrievaler.retrieval(question, embd_mdl, kb.tenant_id, [kb_id], page, size,
+                                      similarity_threshold, vector_similarity_weight, top,
+                                      doc_ids, rerank_mdl=rerank_mdl)
+        for c in ranks["chunks"]:
+            if "vector" in c:
+                del c["vector"]
+
+        return get_json_result(data=ranks)
+    except Exception as e:
+        if str(e).find("not_found") > 0:
+            return get_json_result(data=False, retmsg=f'No chunk found! Check the chunk status please!',
+                                   retcode=RetCode.DATA_ERROR)
+        return server_error_response(e)
+

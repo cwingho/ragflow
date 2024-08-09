@@ -1,18 +1,18 @@
-import { normFile } from '@/utils/fileUtil';
-import { PlusOutlined } from '@ant-design/icons';
-import { Button, Form, Input, Radio, Select, Space, Upload } from 'antd';
-import {
-  useFetchKnowledgeConfigurationOnMount,
-  useSubmitKnowledgeConfiguration,
-} from './hooks';
-
+import EntityTypesItem from '@/components/entity-types-item';
 import LayoutRecognize from '@/components/layout-recognize';
 import MaxTokenNumber from '@/components/max-token-number';
 import ParseConfiguration, {
   showRaptorParseConfiguration,
 } from '@/components/parse-configuration';
-import { useTranslate } from '@/hooks/commonHooks';
+import { useTranslate } from '@/hooks/common-hooks';
+import { normFile } from '@/utils/file-util';
+import { PlusOutlined } from '@ant-design/icons';
+import { Button, Form, Input, Radio, Select, Space, Upload } from 'antd';
 import { FormInstance } from 'antd/lib';
+import {
+  useFetchKnowledgeConfigurationOnMount,
+  useSubmitKnowledgeConfiguration,
+} from './hooks';
 import styles from './index.less';
 
 const { Option } = Select;
@@ -98,12 +98,16 @@ const ConfigurationForm = ({ form }: { form: FormInstance }) => {
           ))}
         </Select>
       </Form.Item>
+
       <Form.Item noStyle dependencies={['parser_id']}>
         {({ getFieldValue }) => {
           const parserId = getFieldValue('parser_id');
 
           return (
             <>
+              {parserId === 'knowledge_graph' && (
+                <EntityTypesItem></EntityTypesItem>
+              )}
               {parserId === 'naive' && (
                 <>
                   <MaxTokenNumber></MaxTokenNumber>

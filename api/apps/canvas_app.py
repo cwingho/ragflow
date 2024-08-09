@@ -15,14 +15,12 @@
 #
 import json
 from functools import partial
-
 from flask import request, Response
 from flask_login import login_required, current_user
-
 from api.db.services.canvas_service import CanvasTemplateService, UserCanvasService
 from api.utils import get_uuid
 from api.utils.api_utils import get_json_result, server_error_response, validate_request
-from graph.canvas import Canvas
+from agent.canvas import Canvas
 
 
 @manager.route('/templates', methods=['GET'])
@@ -34,8 +32,9 @@ def templates():
 @manager.route('/list', methods=['GET'])
 @login_required
 def canvas_list():
-
-    return get_json_result(data=[c.to_dict() for c in UserCanvasService.query(user_id=current_user.id)])
+    return get_json_result(data=sorted([c.to_dict() for c in \
+                                 UserCanvasService.query(user_id=current_user.id)], key=lambda x: x["update_time"]*-1)
+                           )
 
 
 @manager.route('/rm', methods=['POST'])
@@ -53,7 +52,7 @@ def rm():
 def save():
     req = request.json
     req["user_id"] = current_user.id
-    if not isinstance(req["dsl"], str):req["dsl"] = json.dumps(req["dsl"], ensure_ascii=False)
+    if not isinstance(req["dsl"], str): req["dsl"] = json.dumps(req["dsl"], ensure_ascii=False)
 
     req["dsl"] = json.loads(req["dsl"])
     if "id" not in req:
@@ -93,16 +92,18 @@ def run():
     final_ans = {"reference": [], "content": ""}
     try:
         canvas = Canvas(cvs.dsl, current_user.id)
-        print(canvas)
         if "message" in req:
             canvas.messages.append({"role": "user", "content": req["message"]})
             canvas.add_user_input(req["message"])
         answer = canvas.run(stream=stream)
+        print(canvas)
     except Exception as e:
         return server_error_response(e)
 
+    assert answer is not None, "Nothing. Is it over?"
+
     if stream:
-        assert isinstance(answer, partial)
+        assert isinstance(answer, partial), "Nothing. Is it over?"
 
         def sse():
             nonlocal answer, cvs
@@ -111,10 +112,10 @@ def run():
                     for k in ans.keys():
                         final_ans[k] = ans[k]
                     ans = {"answer": ans["content"], "reference": ans.get("reference", [])}
-                    yield "data:" + json.dumps({"retcode": 0, "retmsg": "", "data": ans}, ensure_ascii=False) +"\n\n"
+                    yield "data:" + json.dumps({"retcode": 0, "retmsg": "", "data": ans}, ensure_ascii=False) + "\n\n"
 
                 canvas.messages.append({"role": "assistant", "content": final_ans["content"]})
-                if "reference" in final_ans:
+                if final_ans.get("reference"):
                     canvas.reference.append(final_ans["reference"])
                 cvs.dsl = json.loads(str(canvas))
                 UserCanvasService.update_by_id(req["id"], cvs.to_dict())
@@ -131,27 +132,29 @@ def run():
         resp.headers.add_header("Content-Type", "text/event-stream; charset=utf-8")
         return resp
 
+    final_ans["content"] = "\n".join(answer["content"]) if "content" in answer else ""
     canvas.messages.append({"role": "assistant", "content": final_ans["content"]})
-    if "reference" in final_ans:
+    if final_ans.get("reference"):
         canvas.reference.append(final_ans["reference"])
     cvs.dsl = json.loads(str(canvas))
     UserCanvasService.update_by_id(req["id"], cvs.to_dict())
-    return get_json_result(data=req["dsl"])
+    return get_json_result(data={"answer": final_ans["content"], "reference": final_ans.get("reference", [])})
 
 
 @manager.route('/reset', methods=['POST'])
-@validate_request("canvas_id")
+@validate_request("id")
 @login_required
 def reset():
     req = request.json
     try:
-        user_canvas = UserCanvasService.get_by_id(req["canvas_id"])
-        canvas = Canvas(req["dsl"], current_user.id)
+        e, user_canvas = UserCanvasService.get_by_id(req["id"])
+        if not e:
+            return server_error_response("canvas not found.")
+
+        canvas = Canvas(json.dumps(user_canvas.dsl), current_user.id)
         canvas.reset()
         req["dsl"] = json.loads(str(canvas))
-        UserCanvasService.update_by_id(req["canvas_id"], dsl=req["dsl"])
+        UserCanvasService.update_by_id(req["id"], {"dsl": req["dsl"]})
         return get_json_result(data=req["dsl"])
     except Exception as e:
         return server_error_response(e)
-
-

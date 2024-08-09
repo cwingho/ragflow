@@ -17,11 +17,13 @@ from .embedding_model import *
 from .chat_model import *
 from .cv_model import *
 from .rerank_model import *
-
+from .sequence2txt_model import *
 
 EmbeddingModel = {
     "Ollama": OllamaEmbed,
+    "LocalAI": LocalAIEmbed,
     "OpenAI": OpenAIEmbed,
+    "Azure-OpenAI": AzureEmbed,
     "Xinference": XinferenceEmbed,
     "Tongyi-Qianwen": QWenEmbed,
     "ZHIPU-AI": ZhipuEmbed,
@@ -30,25 +32,41 @@ EmbeddingModel = {
     "BaiChuan": BaiChuanEmbed,
     "Jina": JinaEmbed,
     "BAAI": DefaultEmbedding,
-    "Mistral": MistralEmbed
+    "Mistral": MistralEmbed,
+    "Bedrock": BedrockEmbed,
+    "Gemini": GeminiEmbed,
+    "NVIDIA": NvidiaEmbed,
+    "LM-Studio": LmStudioEmbed,
+    "OpenAI-API-Compatible": OpenAI_APIEmbed,
+    "cohere": CoHereEmbed
 }
 
 
 CvModel = {
     "OpenAI": GptV4,
+    "Azure-OpenAI": AzureGptV4,
     "Ollama": OllamaCV,
     "Xinference": XinferenceCV,
     "Tongyi-Qianwen": QWenCV,
     "ZHIPU-AI": Zhipu4V,
-    "Moonshot": LocalCV
+    "Moonshot": LocalCV,
+    "Gemini": GeminiCV,
+    "OpenRouter": OpenRouterCV,
+    "LocalAI": LocalAICV,
+    "NVIDIA": NvidiaCV,
+    "LM-Studio": LmStudioCV,
+    "StepFun":StepFunCV,
+    "OpenAI-API-Compatible": OpenAI_APICV
 }
 
 
 ChatModel = {
     "OpenAI": GptTurbo,
+    "Azure-OpenAI": AzureChat,
     "ZHIPU-AI": ZhipuChat,
     "Tongyi-Qianwen": QWenChat,
     "Ollama": OllamaChat,
+    "LocalAI": LocalAIChat,
     "Xinference": XinferenceChat,
     "Moonshot": MoonshotChat,
     "AzureOpenAI": AzureGPT4,
@@ -57,7 +75,18 @@ ChatModel = {
     "VolcEngine": VolcEngineChat,
     "BaiChuan": BaiChuanChat,
     "MiniMax": MiniMaxChat,
-    "Mistral": MistralChat
+    "Minimax": MiniMaxChat,
+    "Mistral": MistralChat,
+    "Gemini": GeminiChat,
+    "Bedrock": BedrockChat,
+    "Groq": GroqChat,
+    "OpenRouter": OpenRouterChat,
+    "StepFun": StepFunChat,
+    "NVIDIA": NvidiaChat,
+    "LM-Studio": LmStudioChat,
+    "OpenAI-API-Compatible": OpenAI_APIChat,
+    "cohere": CoHereChat,
+    "LeptonAI": LeptonAIChat
 }
 
 
@@ -65,5 +94,19 @@ RerankModel = {
     "BAAI": DefaultRerank,
     "Jina": JinaRerank,
     "Youdao": YoudaoRerank,
+    "Xinference": XInferenceRerank,
+    "NVIDIA": NvidiaRerank,
+    "LM-Studio": LmStudioRerank,
+    "OpenAI-API-Compatible": OpenAI_APIRerank,
+    "cohere": CoHereRerank
+}
+
+
+Seq2txtModel = {
+    "OpenAI": GPTSeq2txt,
+    "Tongyi-Qianwen": QWenSeq2txt,
+    "Ollama": OllamaSeq2txt,
+    "Azure-OpenAI": AzureSeq2txt,
+    "Xinference": XinferenceSeq2txt
 }
 

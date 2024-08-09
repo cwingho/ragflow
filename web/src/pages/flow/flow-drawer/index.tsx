@@ -1,13 +1,34 @@
+import { useTranslate } from '@/hooks/common-hooks';
 import { IModalProps } from '@/interfaces/common';
-import { Drawer, Form } from 'antd';
+import { Drawer, Flex, Form, Input } from 'antd';
 import { useEffect } from 'react';
 import { Node } from 'reactflow';
 import AnswerForm from '../answer-form';
+import ArXivForm from '../arxiv-form';
+import BaiduFanyiForm from '../baidu-fanyi-form';
+import BaiduForm from '../baidu-form';
 import BeginForm from '../begin-form';
+import BingForm from '../bing-form';
+import CategorizeForm from '../categorize-form';
 import { Operator } from '../constant';
+import DuckDuckGoForm from '../duckduckgo-form';
 import GenerateForm from '../generate-form';
-import { useHandleFormValuesChange } from '../hooks';
+import GithubForm from '../github-form';
+import GoogleForm from '../google-form';
+import GoogleScholarForm from '../google-scholar-form';
+import { useHandleFormValuesChange, useHandleNodeNameChange } from '../hooks';
+import KeywordExtractForm from '../keyword-extract-form';
+import MessageForm from '../message-form';
+import OperatorIcon from '../operator-icon';
+import PubMedForm from '../pubmed-form';
+import QWeatherForm from '../qweather-form';
+import RelevantForm from '../relevant-form';
 import RetrievalForm from '../retrieval-form';
+import RewriteQuestionForm from '../rewrite-question-form';
+import WikipediaForm from '../wikipedia-form';
+
+import DeepLForm from '../deepl-form';
+import styles from './index.less';
 
 interface IProps {
   node?: Node;
@@ -18,7 +39,26 @@ const FormMap = {
   [Operator.Retrieval]: RetrievalForm,
   [Operator.Generate]: GenerateForm,
   [Operator.Answer]: AnswerForm,
+  [Operator.Categorize]: CategorizeForm,
+  [Operator.Message]: MessageForm,
+  [Operator.Relevant]: RelevantForm,
+  [Operator.RewriteQuestion]: RewriteQuestionForm,
+  [Operator.Baidu]: BaiduForm,
+  [Operator.DuckDuckGo]: DuckDuckGoForm,
+  [Operator.KeywordExtract]: KeywordExtractForm,
+  [Operator.Wikipedia]: WikipediaForm,
+  [Operator.PubMed]: PubMedForm,
+  [Operator.ArXiv]: ArXivForm,
+  [Operator.Google]: GoogleForm,
+  [Operator.Bing]: BingForm,
+  [Operator.GoogleScholar]: GoogleScholarForm,
+  [Operator.DeepL]: DeepLForm,
+  [Operator.GitHub]: GithubForm,
+  [Operator.BaiduFanyi]: BaiduFanyiForm,
+  [Operator.QWeather]: QWeatherForm,
 };
+
+const EmptyContent = () => <div>empty</div>;
 
 const FlowDrawer = ({
   visible,
@@ -26,8 +66,11 @@ const FlowDrawer = ({
   node,
 }: IModalProps<any> & IProps) => {
   const operatorName: Operator = node?.data.label;
-  const OperatorForm = FormMap[operatorName];
+  const OperatorForm = FormMap[operatorName] ?? EmptyContent;
   const [form] = Form.useForm();
+  const { name, handleNameBlur, handleNameChange } =
+    useHandleNodeNameChange(node);
+  const { t } = useTranslate('flow');
 
   const { handleValuesChange } = useHandleFormValuesChange(node?.id);
 
@@ -39,7 +82,21 @@ const FlowDrawer = ({
 
   return (
     <Drawer
-      title={node?.data.label}
+      title={
+        <Flex gap={'middle'} align="center">
+          <OperatorIcon name={operatorName}></OperatorIcon>
+          <Flex align="center" gap={'small'} flex={1}>
+            <label htmlFor="" className={styles.title}>
+              {t('title')}
+            </label>
+            <Input
+              value={name}
+              onBlur={handleNameBlur}
+              onChange={handleNameChange}
+            ></Input>
+          </Flex>
+        </Flex>
+      }
       placement="right"
       onClose={hideModal}
       open={visible}
@@ -51,6 +108,7 @@ const FlowDrawer = ({
         <OperatorForm
           onValuesChange={handleValuesChange}
           form={form}
+          node={node}
         ></OperatorForm>
       )}
     </Drawer>
