@@ -14,17 +14,18 @@
 #  limitations under the License.
 #
 
+import logging
 import copy
 import re
 
 from api.db import ParserType
 from io import BytesIO
-from rag.nlp import rag_tokenizer, tokenize, tokenize_table, add_positions, bullets_category, title_frequency, tokenize_chunks, docx_question_level
-from deepdoc.parser import PdfParser, PlainParser
+from rag.nlp import rag_tokenizer, tokenize, tokenize_table, bullets_category, title_frequency, tokenize_chunks, docx_question_level
 from rag.utils import num_tokens_from_string
-from deepdoc.parser import PdfParser, ExcelParser, DocxParser
+from deepdoc.parser import PdfParser, PlainParser, DocxParser
 from docx import Document
 from PIL import Image
+
 
 class Pdf(PdfParser):
     def __init__(self):
@@ -47,11 +48,11 @@ class Pdf(PdfParser):
         # for bb in self.boxes:
         #    for b in bb:
         #        print(b)
-        print("OCR:", timer() - start)
+        logging.debug("OCR: {}".format(timer() - start))
 
         self._layouts_rec(zoomin)
         callback(0.65, "Layout analysis finished.")
-        print("layouts:", timer() - start)
+        logging.debug("layouts: {}".format(timer() - start))
         self._table_transformer_job(zoomin)
         callback(0.67, "Table analysis finished.")
         self._text_merge()
@@ -67,9 +68,11 @@ class Pdf(PdfParser):
         return [(b["text"], b.get("layout_no", ""), self.get_position(b, zoomin))
                 for i, b in enumerate(self.boxes)], tbls
 
+
 class Docx(DocxParser):
     def __init__(self):
         pass
+
     def get_picture(self, document, paragraph):
         img = paragraph._element.xpath('.//pic:pic')
         if not img:
@@ -80,6 +83,7 @@ class Docx(DocxParser):
         image = related_part.image
         image = Image.open(BytesIO(image.blob))
         return image
+
     def concat_img(self, img1, img2):
         if img1 and not img2:
             return img1
@@ -159,6 +163,7 @@ class Docx(DocxParser):
             html += "</table>"
             tbls.append(((None, html), ""))
         return ti_list, tbls
+
 
 def chunk(filename, binary=None, from_page=0, to_page=100000,
           lang="Chinese", callback=None, **kwargs):
@@ -244,6 +249,7 @@ def chunk(filename, binary=None, from_page=0, to_page=100000,
         res = tokenize_table(tbls, doc, eng)
         res.extend(tokenize_chunks(chunks, doc, eng, pdf_parser))
         return res
+
     if re.search(r"\.docx$", filename, re.IGNORECASE):
         docx_parser = Docx()
         ti_list, tbls = docx_parser(filename, binary,
@@ -258,8 +264,6 @@ def chunk(filename, binary=None, from_page=0, to_page=100000,
     else:
         raise NotImplementedError("file type not supported yet(pdf and docx supported)")
     
-
-
 
 if __name__ == "__main__":
     import sys

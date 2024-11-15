@@ -1,7 +1,8 @@
 import { DSLComponents } from '@/interfaces/database/flow';
 import { removeUselessFieldsFromValues } from '@/utils/form';
+import { FormInstance, FormListFieldData } from 'antd';
 import { humanId } from 'human-id';
-import { curry, sample } from 'lodash';
+import { curry, get, intersectionWith, isEqual, sample } from 'lodash';
 import pipe from 'lodash/fp/pipe';
 import isObject from 'lodash/isObject';
 import { Edge, Node, Position } from 'reactflow';
@@ -121,27 +122,29 @@ export const buildDslComponentsByGraph = (
 ): DSLComponents => {
   const components: DSLComponents = {};
 
-  nodes.forEach((x) => {
-    const id = x.id;
-    const operatorName = x.data.label;
-    components[id] = {
-      obj: {
-        component_name: operatorName,
-        params:
-          buildOperatorParams(operatorName)(
-            x.data.form as Record<string, unknown>,
-          ) ?? {},
-      },
-      downstream: buildComponentDownstreamOrUpstream(edges, id, true),
-      upstream: buildComponentDownstreamOrUpstream(edges, id, false),
-    };
-  });
+  nodes
+    .filter((x) => x.data.label !== Operator.Note)
+    .forEach((x) => {
+      const id = x.id;
+      const operatorName = x.data.label;
+      components[id] = {
+        obj: {
+          component_name: operatorName,
+          params:
+            buildOperatorParams(operatorName)(
+              x.data.form as Record<string, unknown>,
+            ) ?? {},
+        },
+        downstream: buildComponentDownstreamOrUpstream(edges, id, true),
+        upstream: buildComponentDownstreamOrUpstream(edges, id, false),
+      };
+    });
 
   return components;
 };
 
 export const receiveMessageError = (res: any) =>
-  res && (res?.response.status !== 200 || res?.data?.retcode !== 0);
+  res && (res?.response.status !== 200 || res?.data?.code !== 0);
 
 // Replace the id in the object with text
 export const replaceIdWithText = (
@@ -172,10 +175,25 @@ export const isEdgeEqual = (previous: Edge, current: Edge) =>
   previous.sourceHandle === current.sourceHandle;
 
 export const buildNewPositionMap = (
-  categoryDataKeys: string[],
-  indexesInUse: number[],
+  currentKeys: string[],
+  previousPositionMap: Record<string, IPosition>,
 ) => {
-  return categoryDataKeys.reduce<Record<string, IPosition>>((pre, cur) => {
+  // index in use
+  const indexesInUse = Object.values(previousPositionMap).map((x) => x.idx);
+  const previousKeys = Object.keys(previousPositionMap);
+  const intersectionKeys = intersectionWith(
+    previousKeys,
+    currentKeys,
+    (categoryDataKey: string, positionMapKey: string) =>
+      categoryDataKey === positionMapKey,
+  );
+  // difference set
+  const currentDifferenceKeys = currentKeys.filter(
+    (x) => !intersectionKeys.some((y: string) => y === x),
+  );
+  const newPositionMap = currentDifferenceKeys.reduce<
+    Record<string, IPosition>
+  >((pre, cur) => {
     // take a coordinate
     const effectiveIdxes = CategorizeAnchorPointPositions.map(
       (x, idx) => idx,
@@ -188,4 +206,118 @@ export const buildNewPositionMap = (
 
     return pre;
   }, {});
+
+  return { intersectionKeys, newPositionMap };
+};
+
+export const isKeysEqual = (currentKeys: string[], previousKeys: string[]) => {
+  return isEqual(currentKeys.sort(), previousKeys.sort());
+};
+
+export const getOperatorIndex = (handleTitle: string) => {
+  return handleTitle.split(' ').at(-1);
+};
+
+// Get the value of other forms except itself
+export const getOtherFieldValues = (
+  form: FormInstance,
+  formListName: string = 'items',
+  field: FormListFieldData,
+  latestField: string,
+) =>
+  (form.getFieldValue([formListName]) ?? [])
+    .map((x: any) => {
+      return get(x, latestField);
+    })
+    .filter(
+      (x: string) =>
+        x !== form.getFieldValue([formListName, field.name, latestField]),
+    );
+
+export const generateSwitchHandleText = (idx: number) => {
+  return `Case ${idx + 1}`;
+};
+
+export const getNodeDragHandle = (nodeType?: string) => {
+  return nodeType === Operator.Note ? '.note-drag-handle' : undefined;
+};
+
+const splitName = (name: string) => {
+  const names = name.split('_');
+  const type = names.at(0);
+  const index = Number(names.at(-1));
+
+  return { type, index };
+};
+
+export const generateNodeNamesWithIncreasingIndex = (
+  name: string,
+  nodes: Node[],
+) => {
+  const templateNameList = nodes
+    .filter((x) => {
+      const temporaryName = x.data.name;
+
+      const { type, index } = splitName(temporaryName);
+
+      return (
+        temporaryName.match(/_/g)?.length === 1 &&
+        type === name &&
+        !isNaN(index)
+      );
+    })
+    .map((x) => {
+      const temporaryName = x.data.name;
+      const { index } = splitName(temporaryName);
+
+      return {
+        idx: index,
+        name: temporaryName,
+      };
+    })
+    .sort((a, b) => a.idx - b.idx);
+
+  let index: number = 0;
+  for (let i = 0; i < templateNameList.length; i++) {
+    const idx = templateNameList[i]?.idx;
+    const nextIdx = templateNameList[i + 1]?.idx;
+    if (idx + 1 !== nextIdx) {
+      index = idx + 1;
+      break;
+    }
+  }
+
+  return `${name}_${index}`;
+};
+
+export const duplicateNodeForm = (nodeData?: NodeData) => {
+  const form: Record<string, any> = { ...(nodeData?.form ?? {}) };
+
+  // Delete the downstream node corresponding to the to field of the Categorize operator
+  if (nodeData?.label === Operator.Categorize) {
+    form.category_description = Object.keys(form.category_description).reduce<
+      Record<string, Record<string, any>>
+    >((pre, cur) => {
+      pre[cur] = {
+        ...form.category_description[cur],
+        to: undefined,
+      };
+      return pre;
+    }, {});
+  }
+
+  // Delete the downstream nodes corresponding to the yes and no fields of the Relevant operator
+  if (nodeData?.label === Operator.Relevant) {
+    form.yes = undefined;
+    form.no = undefined;
+  }
+
+  return {
+    ...(nodeData ?? {}),
+    form,
+  };
+};
+
+export const getDrawerWidth = () => {
+  return window.innerWidth > 1278 ? '40%' : 470;
 };

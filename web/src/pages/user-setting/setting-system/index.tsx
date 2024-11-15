@@ -1,6 +1,9 @@
 import SvgIcon from '@/components/svg-icon';
 import { useFetchSystemStatus } from '@/hooks/user-setting-hooks';
-import { ISystemStatus, Minio } from '@/interfaces/database/userSetting';
+import {
+  ISystemStatus,
+  TaskExecutorElapsed,
+} from '@/interfaces/database/user-setting';
 import { Badge, Card, Flex, Spin, Typography } from 'antd';
 import classNames from 'classnames';
 import lowerCase from 'lodash/lowerCase';
@@ -9,6 +12,7 @@ import { useEffect } from 'react';
 
 import { toFixed } from '@/utils/common-util';
 import styles from './index.less';
+import TaskBarChat from './task-bar-chat';
 
 const { Text } = Typography;
 
@@ -20,9 +24,17 @@ enum Status {
 
 const TitleMap = {
   es: 'Elasticsearch',
-  minio: 'MinIO Object Storage',
+  storage: 'Object Storage',
   redis: 'Redis',
-  mysql: 'Mysql',
+  database: 'Database',
+  task_executor: 'Task Executor',
+};
+
+const IconMap = {
+  es: 'es',
+  storage: 'storage',
+  redis: 'redis',
+  database: 'database',
 };
 
 const SystemInfo = () => {
@@ -48,7 +60,11 @@ const SystemInfo = () => {
                 type="inner"
                 title={
                   <Flex align="center" gap={10}>
-                    <SvgIcon name={key} width={26}></SvgIcon>
+                    {key === 'task_executor' ? (
+                      <img src="/logo.svg" alt="" width={26} />
+                    ) : (
+                      <SvgIcon name={IconMap[key as keyof typeof IconMap]} width={26}></SvgIcon>
+                    )}
                     <span className={styles.title}>
                       {TitleMap[key as keyof typeof TitleMap]}
                     </span>
@@ -60,28 +76,38 @@ const SystemInfo = () => {
                 }
                 key={key}
               >
-                {Object.keys(info)
-                  .filter((x) => x !== 'status')
-                  .map((x) => {
-                    return (
-                      <Flex
-                        key={x}
-                        align="center"
-                        gap={16}
-                        className={styles.text}
-                      >
-                        <b>{upperFirst(lowerCase(x))}:</b>
-                        <Text
-                          className={classNames({
-                            [styles.error]: x === 'error',
-                          })}
+                {key === 'task_executor' ? (
+                  info?.elapsed ? (
+                    <TaskBarChat
+                      data={info.elapsed as TaskExecutorElapsed}
+                    ></TaskBarChat>
+                  ) : (
+                    <Text className={styles.error}>{info.error}</Text>
+                  )
+                ) : (
+                  Object.keys(info)
+                    .filter((x) => x !== 'status')
+                    .map((x) => {
+                      return (
+                        <Flex
+                          key={x}
+                          align="center"
+                          gap={16}
+                          className={styles.text}
                         >
-                          {toFixed(info[x as keyof Minio]) as any}
-                          {x === 'elapsed' && ' ms'}
-                        </Text>
-                      </Flex>
-                    );
-                  })}
+                          <b>{upperFirst(lowerCase(x))}:</b>
+                          <Text
+                            className={classNames({
+                              [styles.error]: x === 'error',
+                            })}
+                          >
+                            {toFixed((info as Record<string, any>)[x]) as any}
+                            {x === 'elapsed' && ' ms'}
+                          </Text>
+                        </Flex>
+                      );
+                    })
+                )}
               </Card>
             );
           })}

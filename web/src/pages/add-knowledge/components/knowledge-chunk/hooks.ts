@@ -67,7 +67,7 @@ export const useDeleteChunkByIds = (): {
 
   const removeChunk = useCallback(
     (chunkIds: string[], documentId: string) => () => {
-      return deleteChunk({ chunkIds, documentId });
+      return deleteChunk({ chunkIds, doc_id: documentId });
     },
     [deleteChunk],
   );
@@ -96,14 +96,14 @@ export const useUpdateChunk = () => {
 
   const onChunkUpdatingOk = useCallback(
     async ({ content, keywords }: { content: string; keywords: string }) => {
-      const retcode = await createChunk({
+      const code = await createChunk({
         content_with_weight: content,
         doc_id: documentId,
         chunk_id: chunkId,
         important_kwd: keywords, // keywords
       });
 
-      if (retcode === 0) {
+      if (code === 0) {
         hideChunkUpdatingModal();
       }
     },

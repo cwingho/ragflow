@@ -13,19 +13,13 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-import importlib
+import logging
 import json
-import traceback
 from abc import ABC
 from copy import deepcopy
 from functools import partial
-
-import pandas as pd
-
 from agent.component import component_class
 from agent.component.base import ComponentBase
-from agent.settings import flow_logger, DEBUG
-
 
 class Canvas(ABC):
     """
@@ -193,18 +187,17 @@ class Canvas(ABC):
                 if cpn.component_name == "Answer":
                     self.answer.append(c)
                 else:
-                    if DEBUG: print("RUN: ", c)
-                    if cpn.component_name == "Generate":
-                        cpids = cpn.get_dependent_components()
-                        if any([c not in self.path[-1] for c in cpids]):
-                            continue
+                    logging.debug(f"Canvas.prepare2run: {c}")
+                    cpids = cpn.get_dependent_components()
+                    if any([c not in self.path[-1] for c in cpids]):
+                        continue
                     ans = cpn.run(self.history, **kwargs)
                     self.path[-1].append(c)
             ran += 1
 
         prepare2run(self.components[self.path[-2][-1]]["downstream"])
         while 0 <= ran < len(self.path[-1]):
-            if DEBUG: print(ran, self.path)
+            logging.debug(f"Canvas.run: {ran} {self.path}")
             cpn_id = self.path[-1][ran]
             cpn = self.get_component(cpn_id)
             if not cpn["downstream"]: break
@@ -224,7 +217,7 @@ class Canvas(ABC):
                             self.get_component(p)["obj"].set_exception(e)
                             prepare2run([p])
                             break
-                    traceback.print_exc()
+                    logging.exception("Canvas.run got exception")
                     break
                 continue
 
@@ -236,7 +229,7 @@ class Canvas(ABC):
                         self.get_component(p)["obj"].set_exception(e)
                         prepare2run([p])
                         break
-                traceback.print_exc()
+                logging.exception("Canvas.run got exception")
                 break
 
         if self.answer:
@@ -260,9 +253,11 @@ class Canvas(ABC):
 
     def get_history(self, window_size):
         convs = []
-        for role, obj in self.history[window_size * -2:]:
-            convs.append({"role": role, "content": (obj if role == "user" else
-                                                    '\n'.join(pd.DataFrame(obj)['content']))})
+        for role, obj in self.history[window_size * -1:]:
+            if isinstance(obj, list) and obj and all([isinstance(o, dict) for o in obj]):
+                convs.append({"role": role, "content": '\n'.join([str(s.get("content", "")) for s in obj])})
+            else:
+                convs.append({"role": role, "content": str(obj)})
         return convs
 
     def add_user_input(self, question):
@@ -274,7 +269,7 @@ class Canvas(ABC):
     def get_embedding_model(self):
         return self._embed_id
 
-    def _find_loop(self, max_loops=2):
+    def _find_loop(self, max_loops=6):
         path = self.path[-1][::-1]
         if len(path) < 2: return False
 
@@ -300,3 +295,6 @@ class Canvas(ABC):
                 return pat + " => " + pat
 
         return False
+
+    def get_prologue(self):
+        return self.components["begin"]["obj"]._param.prologue

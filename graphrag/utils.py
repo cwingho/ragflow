@@ -1,18 +1,5 @@
-#
-#  Copyright 2024 The InfiniFlow Authors. All Rights Reserved.
-#
-#  Licensed under the Apache License, Version 2.0 (the "License");
-#  you may not use this file except in compliance with the License.
-#  You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS,
-#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  See the License for the specific language governing permissions and
-#  limitations under the License.
-#
+# Copyright (c) 2024 Microsoft Corporation.
+# Licensed under the MIT License
 """
 Reference:
  - [graphrag](https://github.com/microsoft/graphrag)
@@ -27,23 +14,25 @@ ErrorHandlerFn = Callable[[BaseException | None, str | None, dict | None], None]
 
 
 def perform_variable_replacements(
-    input: str, history: list[dict]=[], variables: dict | None ={}
+    input: str, history: list[dict] | None = None, variables: dict | None = None
 ) -> str:
     """Perform variable replacements on the input string and in a chat log."""
+    if history is None:
+        history = []
+    if variables is None:
+        variables = {}
     result = input
 
     def replace_all(input: str) -> str:
         result = input
-        if variables:
-            for entry in variables:
-                result = result.replace(f"{{{entry}}}", variables[entry])
+        for k, v in variables.items():
+            result = result.replace(f"{{{k}}}", v)
         return result
 
     result = replace_all(result)
-    for i in range(len(history)):
-        entry = history[i]
+    for i, entry in enumerate(history):
         if entry.get("role") == "system":
-            history[i]["content"] = replace_all(entry.get("content") or "")
+            entry["content"] = replace_all(entry.get("content") or "")
 
     return result
 

@@ -1,29 +1,16 @@
-#
-#  Copyright 2024 The InfiniFlow Authors. All Rights Reserved.
-#
-#  Licensed under the Apache License, Version 2.0 (the "License");
-#  you may not use this file except in compliance with the License.
-#  You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS,
-#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  See the License for the specific language governing permissions and
-#  limitations under the License.
-#
+# Copyright (c) 2024 Microsoft Corporation.
+# Licensed under the MIT License
 """
 Reference:
  - [graphrag](https://github.com/microsoft/graphrag)
 """
 
-import json
 import logging
+import json
 import re
 import traceback
 from dataclasses import dataclass
-from typing import Any, List, Callable
+from typing import List, Callable
 import networkx as nx
 import pandas as pd
 from graphrag import leiden
@@ -33,8 +20,6 @@ from rag.llm.chat_model import Base as CompletionLLM
 from graphrag.utils import ErrorHandlerFn, perform_variable_replacements, dict_has_keys_with_types
 from rag.utils import num_tokens_from_string
 from timeit import default_timer as timer
-
-log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -89,11 +74,13 @@ class CommunityReportsExtractor:
                 text = perform_variable_replacements(self._extraction_prompt, variables=prompt_variables)
                 gen_conf = {"temperature": 0.3}
                 try:
-                    response = self._llm.chat(text, [], gen_conf)
+                    response = self._llm.chat(text, [{"role": "user", "content": "Output:"}], gen_conf)
                     token_count += num_tokens_from_string(text + response)
                     response = re.sub(r"^[^\{]*", "", response)
                     response = re.sub(r"[^\}]*$", "", response)
-                    print(response)
+                    response = re.sub(r"\{\{", "{", response)
+                    response = re.sub(r"\}\}", "}", response)
+                    logging.debug(response)
                     response = json.loads(response)
                     if not dict_has_keys_with_types(response, [
                                 ("title", str),
@@ -105,7 +92,7 @@ class CommunityReportsExtractor:
                     response["weight"] = weight
                     response["entities"] = ents
                 except Exception as e:
-                    print("ERROR: ", traceback.format_exc())
+                    logging.exception("CommunityReportsExtractor got exception")
                     self._on_error(e, traceback.format_exc(), None)
                     continue
 

@@ -1,4 +1,2 @@
-
-
-API_KEY = 'IjJkOGQ4ZDE2MzkyMjExZWZhYTk0MzA0M2Q3ZWU1MzdlIg.ZoUfug.RmqcYyCrlAnLtkzk6bYXiXN3eEY'
-HOST_ADDRESS = 'http://127.0.0.1:9380'
+import os
+HOST_ADDRESS=os.getenv('HOST_ADDRESS', 'http://127.0.0.1:9380')

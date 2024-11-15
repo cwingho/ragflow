@@ -13,7 +13,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-import re
+import logging
+import os
 from concurrent.futures import ThreadPoolExecutor
 import json
 from functools import reduce
@@ -24,28 +25,10 @@ from api.db.services.llm_service import LLMBundle
 from api.db.services.user_service import TenantService
 from graphrag.community_reports_extractor import CommunityReportsExtractor
 from graphrag.entity_resolution import EntityResolution
-from graphrag.graph_extractor import GraphExtractor
+from graphrag.graph_extractor import GraphExtractor, DEFAULT_ENTITY_TYPES
 from graphrag.mind_map_extractor import MindMapExtractor
 from rag.nlp import rag_tokenizer
 from rag.utils import num_tokens_from_string
-
-
-def be_children(obj: dict, keyset:set):
-    if isinstance(obj, str):
-        obj = [obj]
-    if isinstance(obj, list):
-        for i in obj: keyset.add(i)
-        return [{"id": re.sub(r"\*+", "", i), "children":[]} for i in obj]
-    arr = []
-    for k,v in obj.items():
-        k = re.sub(r"\*+", "", k)
-        if not k or k in keyset:continue
-        keyset.add(k)
-        arr.append({
-            "id": k,
-            "children": be_children(v, keyset)
-        })
-    return arr
 
 
 def graph_merge(g1, g2):
@@ -70,7 +53,7 @@ def graph_merge(g1, g2):
     return g
 
 
-def build_knowlege_graph_chunks(tenant_id: str, chunks: List[str], callback, entity_types=["organization", "person", "location", "event", "time"]):
+def build_knowledge_graph_chunks(tenant_id: str, chunks: List[str], callback, entity_types=DEFAULT_ENTITY_TYPES):
     _, tenant = TenantService.get_by_id(tenant_id)
     llm_bdl = LLMBundle(tenant_id, LLMType.CHAT, tenant.llm_id)
     ext = GraphExtractor(llm_bdl)
@@ -79,11 +62,12 @@ def build_knowlege_graph_chunks(tenant_id: str, chunks: List[str], callback, ent
 
     assert left_token_count > 0, f"The LLM context length({llm_bdl.max_length}) is smaller than prompt({ext.prompt_token_count})"
 
-    BATCH_SIZE=1
+    BATCH_SIZE=4
     texts, graphs = [], []
     cnt = 0
     threads = []
-    exe = ThreadPoolExecutor(max_workers=12)
+    max_workers = int(os.environ.get('GRAPH_EXTRACTOR_MAX_WORKERS', 50))
+    exe = ThreadPoolExecutor(max_workers=max_workers)
     for i in range(len(chunks)):
         tkn_cnt = num_tokens_from_string(chunks[i])
         if cnt+tkn_cnt >= left_token_count and texts:
@@ -103,7 +87,7 @@ def build_knowlege_graph_chunks(tenant_id: str, chunks: List[str], callback, ent
         graphs.append(_.result().output)
         callback(0.5 + 0.1*i/len(threads), f"Entities extraction progress ... {i+1}/{len(threads)}")
 
-    graph = reduce(graph_merge, graphs)
+    graph = reduce(graph_merge, graphs) if graphs else nx.Graph()
     er = EntityResolution(llm_bdl)
     graph = er(graph).output
 
@@ -111,7 +95,7 @@ def build_knowlege_graph_chunks(tenant_id: str, chunks: List[str], callback, ent
     chunks = []
     for n, attr in graph.nodes(data=True):
         if attr.get("rank", 0) == 0:
-            print(f"Ignore entity: {n}")
+            logging.debug(f"Ignore entity: {n}")
             continue
         chunk = {
             "name_kwd": n,
@@ -153,16 +137,10 @@ def build_knowlege_graph_chunks(tenant_id: str, chunks: List[str], callback, ent
     mg = mindmap(_chunks).output
     if not len(mg.keys()): return chunks
 
-    if len(mg.keys()) > 1:
-        keyset = set([re.sub(r"\*+", "", k) for k,v in mg.items() if isinstance(v, dict) and re.sub(r"\*+", "", k)])
-        md_map = {"id": "root", "children": [{"id": re.sub(r"\*+", "", k), "children": be_children(v, keyset)} for k,v in mg.items() if isinstance(v, dict) and re.sub(r"\*+", "", k)]}
-    else:
-        k = re.sub(r"\*+", "", list(mg.keys())[0])
-        md_map = {"id": k, "children": be_children(list(mg.items())[0][1], set([k]))}
-    print(json.dumps(md_map, ensure_ascii=False, indent=2))
+    logging.debug(json.dumps(mg, ensure_ascii=False, indent=2))
     chunks.append(
         {
-            "content_with_weight": json.dumps(md_map, ensure_ascii=False, indent=2),
+            "content_with_weight": json.dumps(mg, ensure_ascii=False, indent=2),
             "knowledge_graph_kwd": "mind_map"
         })
 

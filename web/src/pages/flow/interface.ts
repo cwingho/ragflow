@@ -43,12 +43,17 @@ export interface ICategorizeItem {
   description?: string;
   examples?: string;
   to?: string;
+  index: number;
 }
 
 export interface IGenerateParameter {
   id?: string;
   key: string;
   component_id?: string;
+}
+
+export interface IInvokeVariable extends IGenerateParameter {
+  value?: string;
 }
 
 export type ICategorizeItemResult = Record<
@@ -64,11 +69,43 @@ export interface IRelevantForm extends IGenerateForm {
   no: string;
 }
 
+export interface ISwitchCondition {
+  items: ISwitchItem[];
+  logical_operator: string;
+  to: string;
+}
+
+export interface ISwitchItem {
+  cpn_id: string;
+  operator: string;
+  value: string;
+}
+
+export interface ISwitchForm {
+  conditions: ISwitchCondition[];
+  end_cpn_id: string;
+  no: string;
+}
+
 export type NodeData = {
   label: string; // operator type
   name: string; // operator name
   color: string;
-  form: IBeginForm | IRetrievalForm | IGenerateForm | ICategorizeForm;
+  form:
+    | IBeginForm
+    | IRetrievalForm
+    | IGenerateForm
+    | ICategorizeForm
+    | ISwitchForm;
 };
 
 export type IPosition = { top: number; right: number; idx: number };
+
+export interface BeginQuery {
+  key: string;
+  type: string;
+  value: string;
+  optional: boolean;
+  name: string;
+  options: (number | string | boolean)[];
+}

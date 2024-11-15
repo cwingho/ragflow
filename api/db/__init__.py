@@ -27,6 +27,7 @@ class UserTenantRole(StrEnum):
     OWNER = 'owner'
     ADMIN = 'admin'
     NORMAL = 'normal'
+    INVITE = 'invite'
 
 
 class TenantPermission(StrEnum):
@@ -55,6 +56,7 @@ class LLMType(StrEnum):
     SPEECH2TEXT = 'speech2text'
     IMAGE2TEXT = 'image2text'
     RERANK = 'rerank'
+    TTS    = 'tts'
 
 
 class ChatStyle(StrEnum):

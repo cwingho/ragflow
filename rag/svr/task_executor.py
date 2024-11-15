@@ -13,45 +13,51 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-import datetime
-import json
 import logging
+import sys
+from api.utils.log_utils import initRootLogger
+CONSUMER_NO = "0" if len(sys.argv) < 2 else sys.argv[1]
+initRootLogger(f"task_executor_{CONSUMER_NO}")
+for module in ["pdfminer"]:
+    module_logger = logging.getLogger(module)
+    module_logger.setLevel(logging.WARNING)
+for module in ["peewee"]:
+    module_logger = logging.getLogger(module)
+    module_logger.handlers.clear()
+    module_logger.propagate = True
+
+from datetime import datetime
+import json
 import os
 import hashlib
 import copy
 import re
 import sys
 import time
-import traceback
+import threading
 from functools import partial
-
-from api.db.services.file2document_service import File2DocumentService
-from api.settings import retrievaler
-from rag.raptor import RecursiveAbstractiveProcessing4TreeOrganizedRetrieval as Raptor
-from rag.utils.minio_conn import MINIO
-from api.db.db_models import close_connection
-from rag.settings import database_logger, SVR_QUEUE_NAME
-from rag.settings import cron_logger, DOC_MAXIMUM_SIZE
-from multiprocessing import Pool
-import numpy as np
-from elasticsearch_dsl import Q, Search
-from multiprocessing.context import TimeoutError
-from api.db.services.task_service import TaskService
-from rag.utils.es_conn import ELASTICSEARCH
-from timeit import default_timer as timer
-from rag.utils import rmSpace, findMaxTm, num_tokens_from_string
-
-from rag.nlp import search, rag_tokenizer
 from io import BytesIO
+from multiprocessing.context import TimeoutError
+from timeit import default_timer as timer
+
+import numpy as np
 import pandas as pd
 
-from rag.app import laws, paper, presentation, manual, qa, table, book, resume, picture, naive, one, audio, knowledge_graph, email
-
 from api.db import LLMType, ParserType
+from api.db.services.dialog_service import keyword_extraction, question_proposal
 from api.db.services.document_service import DocumentService
 from api.db.services.llm_service import LLMBundle
-from api.utils.file_utils import get_project_base_directory
-from rag.utils.redis_conn import REDIS_CONN
+from api.db.services.task_service import TaskService
+from api.db.services.file2document_service import File2DocumentService
+from api.settings import retrievaler, docStoreConn
+from api.db.db_models import close_connection
+from rag.app import laws, paper, presentation, manual, qa, table, book, resume, picture, naive, one, audio, knowledge_graph, email
+from rag.nlp import search, rag_tokenizer
+from rag.raptor import RecursiveAbstractiveProcessing4TreeOrganizedRetrieval as Raptor
+from rag.settings import DOC_MAXIMUM_SIZE, SVR_QUEUE_NAME
+from rag.utils import rmSpace, num_tokens_from_string
+from rag.utils.redis_conn import REDIS_CONN, Payload
+from rag.utils.storage_factory import STORAGE_IMPL
 
 BATCH_SIZE = 64
 
@@ -73,9 +79,17 @@ FACTORY = {
     ParserType.KG.value: knowledge_graph
 }
 
+CONSUMER_NAME = "task_consumer_" + CONSUMER_NO
+PAYLOAD: Payload | None = None
+BOOT_AT = datetime.now().isoformat()
+DONE_TASKS = 0
+RETRY_TASKS = 0
+PENDING_TASKS = 0
+HEAD_CREATED_AT = ""
+HEAD_DETAIL = ""
 
-def set_progress(task_id, from_page=0, to_page=-1,
-                 prog=None, msg="Processing..."):
+def set_progress(task_id, from_page=0, to_page=-1, prog=None, msg="Processing..."):
+    global PAYLOAD
     if prog is not None and prog < 0:
         msg = "[ERROR]" + msg
     cancel = TaskService.do_cancel(task_id)
@@ -91,41 +105,50 @@ def set_progress(task_id, from_page=0, to_page=-1,
         d["progress"] = prog
     try:
         TaskService.update_progress(task_id, d)
-    except Exception as e:
-        cron_logger.error("set_progress:({}), {}".format(task_id, str(e)))
+    except Exception:
+        logging.exception(f"set_progress({task_id}) got exception")
 
     close_connection()
     if cancel:
-        sys.exit()
+        if PAYLOAD:
+            PAYLOAD.ack()
+            PAYLOAD = None
+        os._exit(0)
 
 
 def collect():
+    global CONSUMER_NAME, PAYLOAD
     try:
-        payload = REDIS_CONN.queue_consumer(SVR_QUEUE_NAME, "rag_flow_svr_task_broker", "rag_flow_svr_task_consumer")
-        if not payload:
+        PAYLOAD = REDIS_CONN.get_unacked_for(CONSUMER_NAME, SVR_QUEUE_NAME, "rag_flow_svr_task_broker")
+        if not PAYLOAD:
+            PAYLOAD = REDIS_CONN.queue_consumer(SVR_QUEUE_NAME, "rag_flow_svr_task_broker", CONSUMER_NAME)
+        if not PAYLOAD:
             time.sleep(1)
             return pd.DataFrame()
-    except Exception as e:
-        cron_logger.error("Get task event from queue exception:" + str(e))
+    except Exception:
+        logging.exception("Get task event from queue exception")
         return pd.DataFrame()
 
-    msg = payload.get_message()
-    payload.ack()
-    if not msg: return pd.DataFrame()
+    msg = PAYLOAD.get_message()
+    if not msg:
+        return pd.DataFrame()
 
     if TaskService.do_cancel(msg["id"]):
-        cron_logger.info("Task {} has been canceled.".format(msg["id"]))
+        logging.info("Task {} has been canceled.".format(msg["id"]))
         return pd.DataFrame()
     tasks = TaskService.get_tasks(msg["id"])
-    assert tasks, "{} empty task!".format(msg["id"])
+    if not tasks:
+        logging.warning("{} empty task!".format(msg["id"]))
+        return []
+
     tasks = pd.DataFrame(tasks)
     if msg.get("type", "") == "raptor":
         tasks["task_type"] = "raptor"
     return tasks
 
 
-def get_minio_binary(bucket, name):
-    return MINIO.get(bucket, name)
+def get_storage_binary(bucket, name):
+    return STORAGE_IMPL.get(bucket, name)
 
 
 def build(row):
@@ -142,37 +165,37 @@ def build(row):
     chunker = FACTORY[row["parser_id"].lower()]
     try:
         st = timer()
-        bucket, name = File2DocumentService.get_minio_address(doc_id=row["doc_id"])
-        binary = get_minio_binary(bucket, name)
-        cron_logger.info(
+        bucket, name = File2DocumentService.get_storage_address(doc_id=row["doc_id"])
+        binary = get_storage_binary(bucket, name)
+        logging.info(
             "From minio({}) {}/{}".format(timer() - st, row["location"], row["name"]))
-        cks = chunker.chunk(row["name"], binary=binary, from_page=row["from_page"],
-                            to_page=row["to_page"], lang=row["language"], callback=callback,
-                            kb_id=row["kb_id"], parser_config=row["parser_config"], tenant_id=row["tenant_id"])
-        cron_logger.info(
-            "Chunkking({}) {}/{}".format(timer() - st, row["location"], row["name"]))
-    except TimeoutError as e:
-        callback(-1, f"Internal server error: Fetch file timeout. Could you try it again.")
-        cron_logger.error(
-            "Chunkking {}/{}: Fetch file timeout.".format(row["location"], row["name"]))
+    except TimeoutError:
+        callback(-1, "Internal server error: Fetch file from minio timeout. Could you try it again.")
+        logging.exception("Minio {}/{} got timeout: Fetch file from minio timeout.".format(row["location"], row["name"]))
         return
     except Exception as e:
         if re.search("(No such file|not found)", str(e)):
-            callback(-1, "Can not find file <%s>" % row["name"])
+            callback(-1, "Can not find file <%s> from minio. Could you try it again?" % row["name"])
         else:
-            callback(-1, f"Internal server error: %s" %
+            callback(-1, "Get file from minio: %s" % str(e).replace("'", ""))
+        logging.exception("Chunking {}/{} got exception".format(row["location"], row["name"]))
+        return
+
+    try:
+        cks = chunker.chunk(row["name"], binary=binary, from_page=row["from_page"],
+                            to_page=row["to_page"], lang=row["language"], callback=callback,
+                            kb_id=row["kb_id"], parser_config=row["parser_config"], tenant_id=row["tenant_id"])
+        logging.info("Chunking({}) {}/{} done".format(timer() - st, row["location"], row["name"]))
+    except Exception as e:
+        callback(-1, "Internal server error while chunking: %s" %
                      str(e).replace("'", ""))
-        traceback.print_exc()
-
-        cron_logger.error(
-            "Chunkking {}/{}: {}".format(row["location"], row["name"], str(e)))
-
+        logging.exception("Chunking {}/{} got exception".format(row["location"], row["name"]))
         return
 
     docs = []
     doc = {
         "doc_id": row["doc_id"],
-        "kb_id": [str(row["kb_id"])]
+        "kb_id": str(row["kb_id"])
     }
     el = 0
     for ck in cks:
@@ -181,39 +204,70 @@ def build(row):
         md5 = hashlib.md5()
         md5.update((ck["content_with_weight"] +
                     str(d["doc_id"])).encode("utf-8"))
-        d["_id"] = md5.hexdigest()
-        d["create_time"] = str(datetime.datetime.now()).replace("T", " ")[:19]
-        d["create_timestamp_flt"] = datetime.datetime.now().timestamp()
+        d["id"] = md5.hexdigest()
+        d["create_time"] = str(datetime.now()).replace("T", " ")[:19]
+        d["create_timestamp_flt"] = datetime.now().timestamp()
         if not d.get("image"):
+            d["img_id"] = ""
+            d["page_num_list"] = json.dumps([])
+            d["position_list"] = json.dumps([])
+            d["top_list"] = json.dumps([])
             docs.append(d)
             continue
 
-        output_buffer = BytesIO()
-        if isinstance(d["image"], bytes):
-            output_buffer = BytesIO(d["image"])
-        else:
-            d["image"].save(output_buffer, format='JPEG')
+        try:
+            output_buffer = BytesIO()
+            if isinstance(d["image"], bytes):
+                output_buffer = BytesIO(d["image"])
+            else:
+                d["image"].save(output_buffer, format='JPEG')
 
-        st = timer()
-        MINIO.put(row["kb_id"], d["_id"], output_buffer.getvalue())
-        el += timer() - st
-        d["img_id"] = "{}-{}".format(row["kb_id"], d["_id"])
+            st = timer()
+            STORAGE_IMPL.put(row["kb_id"], d["id"], output_buffer.getvalue())
+            el += timer() - st
+        except Exception:
+            logging.exception("Saving image of chunk {}/{}/{} got exception".format(row["location"], row["name"], d["_id"]))
+
+        d["img_id"] = "{}-{}".format(row["kb_id"], d["id"])
         del d["image"]
         docs.append(d)
-    cron_logger.info("MINIO PUT({}):{}".format(row["name"], el))
+    logging.info("MINIO PUT({}):{}".format(row["name"], el))
+
+    if row["parser_config"].get("auto_keywords", 0):
+        st = timer()
+        callback(msg="Start to generate keywords for every chunk ...")
+        chat_mdl = LLMBundle(row["tenant_id"], LLMType.CHAT, llm_name=row["llm_id"], lang=row["language"])
+        for d in docs:
+            d["important_kwd"] = keyword_extraction(chat_mdl, d["content_with_weight"],
+                                                    row["parser_config"]["auto_keywords"]).split(",")
+            d["important_tks"] = rag_tokenizer.tokenize(" ".join(d["important_kwd"]))
+        callback(msg="Keywords generation completed in {:.2f}s".format(timer()-st))
+
+    if row["parser_config"].get("auto_questions", 0):
+        st = timer()
+        callback(msg="Start to generate questions for every chunk ...")
+        chat_mdl = LLMBundle(row["tenant_id"], LLMType.CHAT, llm_name=row["llm_id"], lang=row["language"])
+        for d in docs:
+            qst = question_proposal(chat_mdl, d["content_with_weight"], row["parser_config"]["auto_questions"])
+            d["content_with_weight"] = f"Question: \n{qst}\n\nAnswer:\n" + d["content_with_weight"]
+            qst = rag_tokenizer.tokenize(qst)
+            if "content_ltks" in d:
+                d["content_ltks"] += " " + qst
+            if "content_sm_ltks" in d:
+                d["content_sm_ltks"] += " " + rag_tokenizer.fine_grained_tokenize(qst)
+        callback(msg="Question generation completed in {:.2f}s".format(timer()-st))
 
     return docs
 
 
-def init_kb(row):
+def init_kb(row, vector_size: int):
     idxnm = search.index_name(row["tenant_id"])
-    if ELASTICSEARCH.indexExist(idxnm):
-        return
-    return ELASTICSEARCH.createIdx(idxnm, json.load(
-        open(os.path.join(get_project_base_directory(), "conf", "mapping.json"), "r")))
+    return docStoreConn.createIdx(idxnm, row["kb_id"], vector_size)
 
 
-def embedding(docs, mdl, parser_config={}, callback=None):
+def embedding(docs, mdl, parser_config=None, callback=None):
+    if parser_config is None:
+        parser_config = {}
     batch_size = 32
     tts, cnts = [rmSpace(d["title_tks"]) for d in docs if d.get("title_tks")], [
         re.sub(r"</?(table|td|caption|tr|th)( [^<>]{0,12})?>", " ", d["content_with_weight"]) for d in docs]
@@ -246,17 +300,20 @@ def embedding(docs, mdl, parser_config={}, callback=None):
              cnts) if len(tts) == len(cnts) else cnts
 
     assert len(vects) == len(docs)
+    vector_size = 0
     for i, d in enumerate(docs):
         v = vects[i].tolist()
+        vector_size = len(v)
         d["q_%d_vec" % len(v)] = v
-    return tk_count
+    return tk_count, vector_size
 
 
 def run_raptor(row, chat_mdl, embd_mdl, callback=None):
     vts, _ = embd_mdl.encode(["ok"])
-    vctr_nm = "q_%d_vec"%len(vts[0])
+    vector_size = len(vts[0])
+    vctr_nm = "q_%d_vec" % vector_size
     chunks = []
-    for d in retrievaler.chunk_list(row["doc_id"], row["tenant_id"], fields=["content_with_weight", vctr_nm]):
+    for d in retrievaler.chunk_list(row["doc_id"], row["tenant_id"], [str(row["kb_id"])], fields=["content_with_weight", vctr_nm]):
         chunks.append((d["content_with_weight"], np.array(d[vctr_nm])))
 
     raptor = Raptor(
@@ -281,16 +338,16 @@ def run_raptor(row, chat_mdl, embd_mdl, callback=None):
         d = copy.deepcopy(doc)
         md5 = hashlib.md5()
         md5.update((content + str(d["doc_id"])).encode("utf-8"))
-        d["_id"] = md5.hexdigest()
-        d["create_time"] = str(datetime.datetime.now()).replace("T", " ")[:19]
-        d["create_timestamp_flt"] = datetime.datetime.now().timestamp()
+        d["id"] = md5.hexdigest()
+        d["create_time"] = str(datetime.now()).replace("T", " ")[:19]
+        d["create_timestamp_flt"] = datetime.now().timestamp()
         d[vctr_nm] = vctr.tolist()
         d["content_with_weight"] = content
         d["content_ltks"] = rag_tokenizer.tokenize(content)
         d["content_sm_ltks"] = rag_tokenizer.fine_grained_tokenize(d["content_ltks"])
         res.append(d)
         tk_count += num_tokens_from_string(content)
-    return res, tk_count
+    return res, tk_count, vector_size
 
 
 def main():
@@ -304,21 +361,21 @@ def main():
             embd_mdl = LLMBundle(r["tenant_id"], LLMType.EMBEDDING, llm_name=r["embd_id"], lang=r["language"])
         except Exception as e:
             callback(-1, msg=str(e))
-            cron_logger.error(str(e))
+            logging.exception("LLMBundle got exception")
             continue
 
         if r.get("task_type", "") == "raptor":
             try:
                 chat_mdl = LLMBundle(r["tenant_id"], LLMType.CHAT, llm_name=r["llm_id"], lang=r["language"])
-                cks, tk_count = run_raptor(r, chat_mdl, embd_mdl, callback)
+                cks, tk_count, vector_size = run_raptor(r, chat_mdl, embd_mdl, callback)
             except Exception as e:
                 callback(-1, msg=str(e))
-                cron_logger.error(str(e))
+                logging.exception("run_raptor got exception")
                 continue
         else:
             st = timer()
             cks = build(r)
-            cron_logger.info("Build chunks({}): {}".format(r["name"], timer() - st))
+            logging.info("Build chunks({}): {}".format(r["name"], timer() - st))
             if cks is None:
                 continue
             if not cks:
@@ -327,52 +384,89 @@ def main():
             # TODO: exception handler
             ## set_progress(r["did"], -1, "ERROR: ")
             callback(
-                msg="Finished slicing files(%d). Start to embedding the content." %
-                    len(cks))
+                msg="Finished slicing files ({} chunks in {:.2f}s). Start to embedding the content.".format(len(cks), timer() - st)
+            )
             st = timer()
             try:
-                tk_count = embedding(cks, embd_mdl, r["parser_config"], callback)
+                tk_count, vector_size = embedding(cks, embd_mdl, r["parser_config"], callback)
             except Exception as e:
                 callback(-1, "Embedding error:{}".format(str(e)))
-                cron_logger.error(str(e))
+                logging.exception("run_rembedding got exception")
                 tk_count = 0
-            cron_logger.info("Embedding elapsed({}): {:.2f}".format(r["name"], timer() - st))
-            callback(msg="Finished embedding({:.2f})! Start to build index!".format(timer() - st))
+            logging.info("Embedding elapsed({}): {:.2f}".format(r["name"], timer() - st))
+            callback(msg="Finished embedding (in {:.2f}s)! Start to build index!".format(timer() - st))
 
-        init_kb(r)
-        chunk_count = len(set([c["_id"] for c in cks]))
+        # logging.info(f"task_executor init_kb index {search.index_name(r["tenant_id"])} embd_mdl {embd_mdl.llm_name} vector length {vector_size}")
+        init_kb(r, vector_size)
+        chunk_count = len(set([c["id"] for c in cks]))
         st = timer()
         es_r = ""
-        es_bulk_size = 16
+        es_bulk_size = 4
         for b in range(0, len(cks), es_bulk_size):
-            es_r = ELASTICSEARCH.bulk(cks[b:b + es_bulk_size], search.index_name(r["tenant_id"]))
+            es_r = docStoreConn.insert(cks[b:b + es_bulk_size], search.index_name(r["tenant_id"]), r["kb_id"])
             if b % 128 == 0:
                 callback(prog=0.8 + 0.1 * (b + 1) / len(cks), msg="")
 
-        cron_logger.info("Indexing elapsed({}): {:.2f}".format(r["name"], timer() - st))
+        logging.info("Indexing elapsed({}): {:.2f}".format(r["name"], timer() - st))
         if es_r:
-            callback(-1, "Index failure!")
-            ELASTICSEARCH.deleteByQuery(
-                Q("match", doc_id=r["doc_id"]), idxnm=search.index_name(r["tenant_id"]))
-            cron_logger.error(str(es_r))
+            callback(-1, "Insert chunk error, detail info please check log file. Please also check ES status!")
+            docStoreConn.delete({"doc_id": r["doc_id"]}, search.index_name(r["tenant_id"]), r["kb_id"])
+            logging.error('Insert chunk error: ' + str(es_r))
         else:
             if TaskService.do_cancel(r["id"]):
-                ELASTICSEARCH.deleteByQuery(
-                    Q("match", doc_id=r["doc_id"]), idxnm=search.index_name(r["tenant_id"]))
+                docStoreConn.delete({"doc_id": r["doc_id"]}, search.index_name(r["tenant_id"]), r["kb_id"])
                 continue
+            callback(msg="Indexing elapsed in {:.2f}s.".format(timer() - st))
             callback(1., "Done!")
             DocumentService.increment_chunk_num(
                 r["doc_id"], r["kb_id"], tk_count, chunk_count, 0)
-            cron_logger.info(
+            logging.info(
                 "Chunk doc({}), token({}), chunks({}), elapsed:{:.2f}".format(
                     r["id"], tk_count, len(cks), timer() - st))
 
 
+def report_status():
+    global CONSUMER_NAME, BOOT_AT, DONE_TASKS, RETRY_TASKS, PENDING_TASKS, HEAD_CREATED_AT, HEAD_DETAIL
+    REDIS_CONN.sadd("TASKEXE", CONSUMER_NAME)
+    while True:
+        try:
+            now = datetime.now()
+            PENDING_TASKS = REDIS_CONN.queue_length(SVR_QUEUE_NAME)
+            if PENDING_TASKS > 0:
+                head_info = REDIS_CONN.queue_head(SVR_QUEUE_NAME)
+                if head_info is not None:
+                    seconds = int(head_info[0].split("-")[0])/1000
+                    HEAD_CREATED_AT = datetime.fromtimestamp(seconds).isoformat()
+                    HEAD_DETAIL = head_info[1]
+
+            heartbeat = json.dumps({
+                "name": CONSUMER_NAME,
+                "now": now.isoformat(),
+                "boot_at": BOOT_AT,
+                "done": DONE_TASKS,
+                "retry": RETRY_TASKS,
+                "pending": PENDING_TASKS,
+                "head_created_at": HEAD_CREATED_AT,
+                "head_detail": HEAD_DETAIL,
+            })
+            REDIS_CONN.zadd(CONSUMER_NAME, heartbeat, now.timestamp())
+            logging.info(f"{CONSUMER_NAME} reported heartbeat: {heartbeat}")
+
+            expired = REDIS_CONN.zcount(CONSUMER_NAME, 0, now.timestamp() - 60*30)
+            if expired > 0:
+                REDIS_CONN.zpopmin(CONSUMER_NAME, expired)
+        except Exception:
+            logging.exception("report_status got exception")
+        time.sleep(30)
+
+
 if __name__ == "__main__":
-    peewee_logger = logging.getLogger('peewee')
-    peewee_logger.propagate = False
-    peewee_logger.addHandler(database_logger.handlers[0])
-    peewee_logger.setLevel(database_logger.level)
+    background_thread = threading.Thread(target=report_status)
+    background_thread.daemon = True
+    background_thread.start()
 
     while True:
         main()
+        if PAYLOAD:
+            PAYLOAD.ack()
+            PAYLOAD = None

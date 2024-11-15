@@ -5,6 +5,11 @@ const routes = [
     layout: false,
   },
   {
+    path: '/login-next',
+    component: '@/pages/login-next',
+    layout: false,
+  },
+  {
     path: '/chat/share',
     component: '@/pages/chat/share',
     layout: false,
@@ -77,6 +82,10 @@ const routes = [
             path: '/user-setting/system',
             component: '@/pages/user-setting/setting-system',
           },
+          {
+            path: '/user-setting/api',
+            component: '@/pages/user-setting/setting-api',
+          },
         ],
       },
       {
@@ -91,10 +100,14 @@ const routes = [
         path: '/flow/:id',
         component: '@/pages/flow',
       },
+      {
+        path: '/search',
+        component: '@/pages/search',
+      },
     ],
   },
   {
-    path: 'document/:id',
+    path: '/document/:id',
     component: '@/pages/document-viewer',
     layout: false,
   },
@@ -107,6 +120,16 @@ const routes = [
     path: '/*',
     component: '@/pages/404',
     layout: false,
+  },
+  {
+    path: '/demo',
+    component: '@/pages/demo',
+    layout: false,
+  },
+  {
+    path: '/home',
+    layout: false,
+    component: '@/pages/home',
   },
 ];
 

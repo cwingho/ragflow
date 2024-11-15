@@ -1,5 +1,7 @@
+import { useHandleChunkMethodSelectChange } from '@/hooks/logic-hooks';
 import { useSelectParserList } from '@/hooks/user-setting-hooks';
-import { useEffect, useMemo, useState } from 'react';
+import { FormInstance } from 'antd';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const ParserListMap = new Map([
   [
@@ -27,7 +29,7 @@ const ParserListMap = new Map([
       'one',
       'qa',
       'manual',
-      'knowledge_graph'
+      'knowledge_graph',
     ],
   ],
   [
@@ -67,7 +69,7 @@ const ParserListMap = new Map([
   ],
   [['md'], ['naive', 'qa', 'knowledge_graph']],
   [['json'], ['naive', 'knowledge_graph']],
-  [['eml'], ['email']]
+  [['eml'], ['email']],
 ]);
 
 const getParserList = (
@@ -84,9 +86,11 @@ export const useFetchParserListOnMount = (
   documentId: string,
   parserId: string,
   documentExtension: string,
+  form: FormInstance,
 ) => {
   const [selectedTag, setSelectedTag] = useState('');
   const parserList = useSelectParserList();
+  const handleChunkMethodSelectChange = useHandleChunkMethodSelectChange(form);
 
   const nextParserList = useMemo(() => {
     const key = [...ParserListMap.keys()].find((x) =>
@@ -108,9 +112,19 @@ export const useFetchParserListOnMount = (
   }, [parserId, documentId]);
 
   const handleChange = (tag: string) => {
-    // const nextSelectedTag = checked ? tag : selectedTag;
+    handleChunkMethodSelectChange(tag);
     setSelectedTag(tag);
   };
 
   return { parserList: nextParserList, handleChange, selectedTag };
+};
+
+const hideAutoKeywords = ['qa', 'table', 'resume', 'knowledge_graph'];
+
+export const useShowAutoKeywords = () => {
+  const showAutoKeywords = useCallback((selectedTag: string) => {
+    return hideAutoKeywords.every((x) => selectedTag !== x);
+  }, []);
+
+  return showAutoKeywords;
 };

@@ -1,7 +1,5 @@
 import MaxTokenNumber from '@/components/max-token-number';
 import { IModalManagerChildrenProps } from '@/components/modal-manager';
-import { IKnowledgeFileParserConfig } from '@/interfaces/database/knowledge';
-import { IChangeParserConfigRequestBody } from '@/interfaces/request/document';
 import {
   MinusCircleOutlined,
   PlusOutlined,
@@ -19,10 +17,15 @@ import {
 } from 'antd';
 import omit from 'lodash/omit';
 import React, { useEffect, useMemo } from 'react';
-import { useFetchParserListOnMount } from './hooks';
+import { useFetchParserListOnMount, useShowAutoKeywords } from './hooks';
 
 import { useTranslate } from '@/hooks/common-hooks';
+import { IParserConfig } from '@/interfaces/database/document';
+import { IChangeParserConfigRequestBody } from '@/interfaces/request/document';
+import { AutoKeywordsItem, AutoQuestionsItem } from '../auto-keywords-item';
+import Delimiter from '../delimiter';
 import EntityTypesItem from '../entity-types-item';
+import ExcelToHtml from '../excel-to-html';
 import LayoutRecognize from '../layout-recognize';
 import ParseConfiguration, {
   showRaptorParseConfiguration,
@@ -37,7 +40,7 @@ interface IProps extends Omit<IModalManagerChildrenProps, 'showModal'> {
   ) => void;
   showModal?(): void;
   parserId: string;
-  parserConfig: IKnowledgeFileParserConfig;
+  parserConfig: IParserConfig;
   documentExtension: string;
   documentId: string;
 }
@@ -61,12 +64,13 @@ const ChunkMethodModal: React.FC<IProps> = ({
   parserConfig,
   loading,
 }) => {
+  const [form] = Form.useForm();
   const { parserList, handleChange, selectedTag } = useFetchParserListOnMount(
     documentId,
     parserId,
     documentExtension,
+    form,
   );
-  const [form] = Form.useForm();
   const { t } = useTranslate('knowledgeDetails');
 
   const handleOk = async () => {
@@ -88,18 +92,24 @@ const ChunkMethodModal: React.FC<IProps> = ({
     return (
       isPdf &&
       hidePagesChunkMethods
-        .filter((x) => x !== 'one' && x !== 'knowledge_graph')
+        .filter((x) => x !== 'one')
         .every((x) => x !== selectedTag)
     );
   }, [selectedTag, isPdf]);
 
-  const showMaxTokenNumber = selectedTag === 'naive';
+  const showMaxTokenNumber =
+    selectedTag === 'naive' || selectedTag === 'knowledge_graph';
 
   const hideDivider = [showPages, showOne, showMaxTokenNumber].every(
     (x) => x === false,
   );
 
   const showEntityTypes = selectedTag === 'knowledge_graph';
+
+  const showExcelToHtml =
+    selectedTag === 'naive' && documentExtension === 'xlsx';
+
+  const showAutoKeywords = useShowAutoKeywords();
 
   const afterClose = () => {
     form.resetFields();
@@ -108,7 +118,7 @@ const ChunkMethodModal: React.FC<IProps> = ({
   useEffect(() => {
     if (visible) {
       const pages =
-        parserConfig.pages?.map((x) => ({ from: x[0], to: x[1] })) ?? [];
+        parserConfig?.pages?.map((x) => ({ from: x[0], to: x[1] })) ?? [];
       form.setFieldsValue({
         pages: pages.length > 0 ? pages : [{ from: 1, to: 1024 }],
         parser_config: omit(parserConfig, 'pages'),
@@ -268,7 +278,21 @@ const ChunkMethodModal: React.FC<IProps> = ({
             }
           </Form.Item>
         )}
-        {showMaxTokenNumber && <MaxTokenNumber></MaxTokenNumber>}
+        {showMaxTokenNumber && (
+          <>
+            <MaxTokenNumber
+              max={selectedTag === 'knowledge_graph' ? 8192 * 2 : 2048}
+            ></MaxTokenNumber>
+            <Delimiter></Delimiter>
+          </>
+        )}
+        {showAutoKeywords(selectedTag) && (
+          <>
+            <AutoKeywordsItem></AutoKeywordsItem>
+            <AutoQuestionsItem></AutoQuestionsItem>
+          </>
+        )}
+        {showExcelToHtml && <ExcelToHtml></ExcelToHtml>}
         {showRaptorParseConfiguration(selectedTag) && (
           <ParseConfiguration></ParseConfiguration>
         )}

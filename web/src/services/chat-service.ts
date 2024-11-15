@@ -19,6 +19,13 @@ const {
   createExternalConversation,
   getExternalConversation,
   completeExternalConversation,
+  uploadAndParseExternal,
+  deleteMessage,
+  thumbup,
+  tts,
+  ask,
+  mindmap,
+  getRelatedQuestions,
 } = api;
 
 const methods = {
@@ -84,6 +91,34 @@ const methods = {
   },
   completeExternalConversation: {
     url: completeExternalConversation,
+    method: 'post',
+  },
+  uploadAndParseExternal: {
+    url: uploadAndParseExternal,
+    method: 'post',
+  },
+  deleteMessage: {
+    url: deleteMessage,
+    method: 'post',
+  },
+  thumbup: {
+    url: thumbup,
+    method: 'post',
+  },
+  tts: {
+    url: tts,
+    method: 'post',
+  },
+  ask: {
+    url: ask,
+    method: 'post',
+  },
+  getMindMap: {
+    url: mindmap,
+    method: 'post',
+  },
+  getRelatedQuestions: {
+    url: getRelatedQuestions,
     method: 'post',
   },
 } as const;

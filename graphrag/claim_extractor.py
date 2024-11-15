@@ -1,25 +1,13 @@
-#
-#  Copyright 2024 The InfiniFlow Authors. All Rights Reserved.
-#
-#  Licensed under the Apache License, Version 2.0 (the "License");
-#  you may not use this file except in compliance with the License.
-#  You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS,
-#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  See the License for the specific language governing permissions and
-#  limitations under the License.
-#
+# Copyright (c) 2024 Microsoft Corporation.
+# Licensed under the MIT License
 """
 Reference:
  - [graphrag](https://github.com/microsoft/graphrag)
 """
+
+import logging
 import argparse
 import json
-import logging
 import re
 import traceback
 from dataclasses import dataclass
@@ -35,7 +23,6 @@ DEFAULT_TUPLE_DELIMITER = "<|>"
 DEFAULT_RECORD_DELIMITER = "##"
 DEFAULT_COMPLETION_DELIMITER = "<|COMPLETE|>"
 CLAIM_MAX_GLEANINGS = 1
-log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -139,7 +126,7 @@ class ClaimExtractor:
                 ]
                 source_doc_map[document_id] = text
             except Exception as e:
-                log.exception("error extracting claim")
+                logging.exception("error extracting claim")
                 self._on_error(
                     e,
                     traceback.format_exc(),
@@ -182,7 +169,7 @@ class ClaimExtractor:
                     }
         text = perform_variable_replacements(self._extraction_prompt, variables=variables)
         gen_conf = {"temperature": 0.5}
-        results = self._llm.chat(text, [], gen_conf)
+        results = self._llm.chat(text, [{"role": "user", "content": "Output:"}], gen_conf)
         claims = results.strip().removesuffix(completion_delimiter)
         history = [{"role": "system", "content": text}, {"role": "assistant", "content": results}]
 
@@ -266,13 +253,16 @@ if __name__ == "__main__":
     from api.db import LLMType
     from api.db.services.llm_service import LLMBundle
     from api.settings import retrievaler
+    from api.db.services.knowledgebase_service import KnowledgebaseService
+
+    kb_ids = KnowledgebaseService.get_kb_ids(args.tenant_id)
 
     ex = ClaimExtractor(LLMBundle(args.tenant_id, LLMType.CHAT))
-    docs = [d["content_with_weight"] for d in retrievaler.chunk_list(args.doc_id, args.tenant_id, max_count=12, fields=["content_with_weight"])]
+    docs = [d["content_with_weight"] for d in retrievaler.chunk_list(args.doc_id, args.tenant_id, kb_ids, max_count=12, fields=["content_with_weight"])]
     info = {
         "input_text": docs,
         "entity_specs": "organization, person",
         "claim_description": ""
     }
     claim = ex(info)
-    print(json.dumps(claim.output, ensure_ascii=False, indent=2))
+    logging.info(json.dumps(claim.output, ensure_ascii=False, indent=2))

@@ -1,18 +1,5 @@
-#
-#  Copyright 2024 The InfiniFlow Authors. All Rights Reserved.
-#
-#  Licensed under the Apache License, Version 2.0 (the "License");
-#  you may not use this file except in compliance with the License.
-#  You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-#  Unless required by applicable law or agreed to in writing, software
-#  distributed under the License is distributed on an "AS IS" BASIS,
-#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-#  See the License for the specific language governing permissions and
-#  limitations under the License.
-#
+# Copyright (c) 2024 Microsoft Corporation.
+# Licensed under the MIT License
 """
 Reference:
  - [graphrag](https://github.com/microsoft/graphrag)
@@ -26,8 +13,6 @@ from graspologic.utils import largest_connected_component
 
 import networkx as nx
 from networkx import is_empty
-
-log = logging.getLogger(__name__)
 
 
 def _stabilize_graph(graph: nx.Graph) -> nx.Graph:
@@ -112,7 +97,7 @@ def run(graph: nx.Graph, args: dict[str, Any]) -> dict[int, dict[str, dict]]:
     max_cluster_size = args.get("max_cluster_size", 12)
     use_lcc = args.get("use_lcc", True)
     if args.get("verbose", False):
-        log.info(
+        logging.debug(
             "Running leiden with max_cluster_size=%s, lcc=%s", max_cluster_size, use_lcc
         )
     if not graph.nodes(): return {}
@@ -145,14 +130,6 @@ def run(graph: nx.Graph, args: dict[str, Any]) -> dict[int, dict[str, dict]]:
         for _, comm in result.items(): comm["weight"] /= max_weight
 
     return results_by_level
-
-
-def add_community_info2graph(graph: nx.Graph, commu_info: dict[str, dict[str, dict]]):
-    for lev, cluster_info in commu_info.items():
-        for cid, nodes in cluster_info.items():
-            for n in nodes["nodes"]:
-                if "community" not in graph.nodes[n]: graph.nodes[n]["community"] = {}
-                graph.nodes[n]["community"].update({lev: cid})
 
 
 def add_community_info2graph(graph: nx.Graph, nodes: List[str], community_title):

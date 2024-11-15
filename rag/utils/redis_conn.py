@@ -1,7 +1,7 @@
+import logging
 import json
 
-import redis
-import logging
+import valkey as redis
 from rag import settings
 from rag.utils import singleton
 
@@ -40,7 +40,7 @@ class RedisDB:
                                      db=int(self.config.get("db", 1)),
                                      password=self.config.get("password"),
                                      decode_responses=True)
-        except Exception as e:
+        except Exception:
             logging.warning("Redis can't be connected.")
         return self.REDIS
 
@@ -90,6 +90,69 @@ class RedisDB:
             self.__open__()
         return False
 
+    def sadd(self, key: str, member: str):
+        try:
+            self.REDIS.sadd(key, member)
+            return True
+        except Exception as e:
+            logging.warning("[EXCEPTION]sadd" + str(key) + "||" + str(e))
+            self.__open__()
+        return False
+
+    def srem(self, key: str, member: str):
+        try:
+            self.REDIS.srem(key, member)
+            return True
+        except Exception as e:
+            logging.warning("[EXCEPTION]srem" + str(key) + "||" + str(e))
+            self.__open__()
+        return False
+
+    def smembers(self, key: str):
+        try:
+            res = self.REDIS.smembers(key)
+            return res
+        except Exception as e:
+            logging.warning("[EXCEPTION]smembers" + str(key) + "||" + str(e))
+            self.__open__()
+        return None
+
+    def zadd(self, key: str, member: str, score: float):
+        try:
+            self.REDIS.zadd(key, {member: score})
+            return True
+        except Exception as e:
+            logging.warning("[EXCEPTION]zadd" + str(key) + "||" + str(e))
+            self.__open__()
+        return False
+
+    def zcount(self, key: str, min: float, max: float):
+        try:
+            res = self.REDIS.zcount(key, min, max)
+            return res
+        except Exception as e:
+            logging.warning("[EXCEPTION]spopmin" + str(key) + "||" + str(e))
+            self.__open__()
+        return 0
+
+    def zpopmin(self, key: str, count: int):
+        try:
+            res = self.REDIS.zpopmin(key, count)
+            return res
+        except Exception as e:
+            logging.warning("[EXCEPTION]spopmin" + str(key) + "||" + str(e))
+            self.__open__()
+        return None
+
+    def zrangebyscore(self, key: str, min: float, max: float):
+        try:
+            res = self.REDIS.zrangebyscore(key, min, max)
+            return res
+        except Exception as e:
+            logging.warning("[EXCEPTION]srangebyscore" + str(key) + "||" + str(e))
+            self.__open__()
+        return None
+
     def transaction(self, key, value, exp=3600):
         try:
             pipeline = self.REDIS.pipeline(transaction=True)
@@ -107,12 +170,11 @@ class RedisDB:
                 payload = {"message": json.dumps(message)}
                 pipeline = self.REDIS.pipeline()
                 pipeline.xadd(queue, payload)
-                pipeline.expire(queue, exp)
+                #pipeline.expire(queue, exp)
                 pipeline.execute()
                 return True
-            except Exception as e:
-                print(e)
-                logging.warning("[EXCEPTION]producer" + str(queue) + "||" + str(e))
+            except Exception:
+                logging.exception("producer" + str(queue) + " got exception")
         return False
 
     def queue_consumer(self, queue_name, group_name, consumer_name, msg_id=b">") -> Payload:
@@ -143,8 +205,42 @@ class RedisDB:
             if 'key' in str(e):
                 pass
             else:
-                logging.warning("[EXCEPTION]consumer" + str(queue_name) + "||" + str(e))
+                logging.exception("consumer: " + str(queue_name) + " got exception")
         return None
 
+    def get_unacked_for(self, consumer_name, queue_name, group_name):
+        try:
+            group_info = self.REDIS.xinfo_groups(queue_name)
+            if not any(e["name"] == group_name for e in group_info):
+                return
+            pendings = self.REDIS.xpending_range(queue_name, group_name, min=0, max=10000000000000, count=1, consumername=consumer_name)
+            if not pendings: return
+            msg_id = pendings[0]["message_id"]
+            msg = self.REDIS.xrange(queue_name, min=msg_id, count=1)
+            _, payload = msg[0]
+            return Payload(self.REDIS, queue_name, group_name, msg_id, payload)
+        except Exception as e:
+            if 'key' in str(e):
+                return
+            logging.exception("xpending_range: " + consumer_name + " got exception")
+            self.__open__()
+
+    def queue_length(self, queue) -> int:
+        for _ in range(3):
+            try:
+                num = self.REDIS.xlen(queue)
+                return num
+            except Exception:
+                logging.exception("queue_length" + str(queue) + " got exception")
+        return 0
+
+    def queue_head(self, queue) -> int:
+        for _ in range(3):
+            try:
+                ent = self.REDIS.xrange(queue, count=1)
+                return ent[0]
+            except Exception:
+                logging.exception("queue_head" + str(queue) + " got exception")
+        return 0
 
 REDIS_CONN = RedisDB()

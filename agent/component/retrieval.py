@@ -13,6 +13,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
+import logging
 from abc import ABC
 
 import pandas as pd
@@ -43,22 +44,19 @@ class RetrievalParam(ComponentParamBase):
         self.check_decimal_float(self.similarity_threshold, "[Retrieval] Similarity threshold")
         self.check_decimal_float(self.keywords_similarity_weight, "[Retrieval] Keywords similarity weight")
         self.check_positive_number(self.top_n, "[Retrieval] Top N")
-        self.check_empty(self.kb_ids, "[Retrieval] Knowledge bases")
 
 
 class Retrieval(ComponentBase, ABC):
     component_name = "Retrieval"
 
     def _run(self, history, **kwargs):
-        query = []
-        for role, cnt in history[::-1][:self._param.message_history_window_size]:
-            if role != "user":continue
-            query.append(cnt)
-        query = "\n".join(query)
+        query = self.get_input()
+        query = str(query["content"][0]) if "content" in query else ""
 
         kbs = KnowledgebaseService.get_by_ids(self._param.kb_ids)
         if not kbs:
-            raise ValueError("Can't find knowledgebases by {}".format(self._param.kb_ids))
+            return Retrieval.be_output("")
+
         embd_nms = list(set([kb.embd_id for kb in kbs]))
         assert len(embd_nms) == 1, "Knowledge bases use different embedding models."
 
@@ -75,14 +73,15 @@ class Retrieval(ComponentBase, ABC):
                                         aggs=False, rerank_mdl=rerank_mdl)
 
         if not kbinfos["chunks"]:
-            df = Retrieval.be_output(self._param.empty_response)
-            df["empty_response"] = True
+            df = Retrieval.be_output("")
+            if self._param.empty_response and self._param.empty_response.strip():
+                df["empty_response"] = self._param.empty_response
             return df
 
         df = pd.DataFrame(kbinfos["chunks"])
         df["content"] = df["content_with_weight"]
         del df["content_with_weight"]
-        print(">>>>>>>>>>>>>>>>>>>>>>>>>>\n", query, df)
+        logging.debug("{} {}".format(query, df))
         return df
 
 

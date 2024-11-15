@@ -3,6 +3,7 @@ import {
   IApiKeySavingParams,
   ISystemModelSettingSavingParams,
   useAddLlm,
+  useDeleteFactory,
   useDeleteLlm,
   useSaveApiKey,
   useSaveTenantInfo,
@@ -163,6 +164,168 @@ export const useSubmitVolcEngine = () => {
   };
 };
 
+export const useSubmitHunyuan = () => {
+  const { addLlm, loading } = useAddLlm();
+  const {
+    visible: HunyuanAddingVisible,
+    hideModal: hideHunyuanAddingModal,
+    showModal: showHunyuanAddingModal,
+  } = useSetModalState();
+
+  const onHunyuanAddingOk = useCallback(
+    async (payload: IAddLlmRequestBody) => {
+      const ret = await addLlm(payload);
+      if (ret === 0) {
+        hideHunyuanAddingModal();
+      }
+    },
+    [hideHunyuanAddingModal, addLlm],
+  );
+
+  return {
+    HunyuanAddingLoading: loading,
+    onHunyuanAddingOk,
+    HunyuanAddingVisible,
+    hideHunyuanAddingModal,
+    showHunyuanAddingModal,
+  };
+};
+
+export const useSubmitTencentCloud = () => {
+  const { addLlm, loading } = useAddLlm();
+  const {
+    visible: TencentCloudAddingVisible,
+    hideModal: hideTencentCloudAddingModal,
+    showModal: showTencentCloudAddingModal,
+  } = useSetModalState();
+
+  const onTencentCloudAddingOk = useCallback(
+    async (payload: IAddLlmRequestBody) => {
+      const ret = await addLlm(payload);
+      if (ret === 0) {
+        hideTencentCloudAddingModal();
+      }
+    },
+    [hideTencentCloudAddingModal, addLlm],
+  );
+
+  return {
+    TencentCloudAddingLoading: loading,
+    onTencentCloudAddingOk,
+    TencentCloudAddingVisible,
+    hideTencentCloudAddingModal,
+    showTencentCloudAddingModal,
+  };
+};
+
+export const useSubmitSpark = () => {
+  const { addLlm, loading } = useAddLlm();
+  const {
+    visible: SparkAddingVisible,
+    hideModal: hideSparkAddingModal,
+    showModal: showSparkAddingModal,
+  } = useSetModalState();
+
+  const onSparkAddingOk = useCallback(
+    async (payload: IAddLlmRequestBody) => {
+      const ret = await addLlm(payload);
+      if (ret === 0) {
+        hideSparkAddingModal();
+      }
+    },
+    [hideSparkAddingModal, addLlm],
+  );
+
+  return {
+    SparkAddingLoading: loading,
+    onSparkAddingOk,
+    SparkAddingVisible,
+    hideSparkAddingModal,
+    showSparkAddingModal,
+  };
+};
+
+export const useSubmityiyan = () => {
+  const { addLlm, loading } = useAddLlm();
+  const {
+    visible: yiyanAddingVisible,
+    hideModal: hideyiyanAddingModal,
+    showModal: showyiyanAddingModal,
+  } = useSetModalState();
+
+  const onyiyanAddingOk = useCallback(
+    async (payload: IAddLlmRequestBody) => {
+      const ret = await addLlm(payload);
+      if (ret === 0) {
+        hideyiyanAddingModal();
+      }
+    },
+    [hideyiyanAddingModal, addLlm],
+  );
+
+  return {
+    yiyanAddingLoading: loading,
+    onyiyanAddingOk,
+    yiyanAddingVisible,
+    hideyiyanAddingModal,
+    showyiyanAddingModal,
+  };
+};
+
+export const useSubmitFishAudio = () => {
+  const { addLlm, loading } = useAddLlm();
+  const {
+    visible: FishAudioAddingVisible,
+    hideModal: hideFishAudioAddingModal,
+    showModal: showFishAudioAddingModal,
+  } = useSetModalState();
+
+  const onFishAudioAddingOk = useCallback(
+    async (payload: IAddLlmRequestBody) => {
+      const ret = await addLlm(payload);
+      if (ret === 0) {
+        hideFishAudioAddingModal();
+      }
+    },
+    [hideFishAudioAddingModal, addLlm],
+  );
+
+  return {
+    FishAudioAddingLoading: loading,
+    onFishAudioAddingOk,
+    FishAudioAddingVisible,
+    hideFishAudioAddingModal,
+    showFishAudioAddingModal,
+  };
+};
+
+export const useSubmitGoogle = () => {
+  const { addLlm, loading } = useAddLlm();
+  const {
+    visible: GoogleAddingVisible,
+    hideModal: hideGoogleAddingModal,
+    showModal: showGoogleAddingModal,
+  } = useSetModalState();
+
+  const onGoogleAddingOk = useCallback(
+    async (payload: IAddLlmRequestBody) => {
+      const ret = await addLlm(payload);
+      if (ret === 0) {
+        hideGoogleAddingModal();
+      }
+    },
+    [hideGoogleAddingModal, addLlm],
+  );
+
+  return {
+    GoogleAddingLoading: loading,
+    onGoogleAddingOk,
+    GoogleAddingVisible,
+    hideGoogleAddingModal,
+    showGoogleAddingModal,
+  };
+};
+
 export const useSubmitBedrock = () => {
   const { addLlm, loading } = useAddLlm();
   const {
@@ -190,6 +353,33 @@ export const useSubmitBedrock = () => {
   };
 };
 
+export const useSubmitAzure = () => {
+  const { addLlm, loading } = useAddLlm();
+  const {
+    visible: AzureAddingVisible,
+    hideModal: hideAzureAddingModal,
+    showModal: showAzureAddingModal,
+  } = useSetModalState();
+
+  const onAzureAddingOk = useCallback(
+    async (payload: IAddLlmRequestBody) => {
+      const ret = await addLlm(payload);
+      if (ret === 0) {
+        hideAzureAddingModal();
+      }
+    },
+    [hideAzureAddingModal, addLlm],
+  );
+
+  return {
+    AzureAddingLoading: loading,
+    onAzureAddingOk,
+    AzureAddingVisible,
+    hideAzureAddingModal,
+    showAzureAddingModal,
+  };
+};
+
 export const useHandleDeleteLlm = (llmFactory: string) => {
   const { deleteLlm } = useDeleteLlm();
   const showDeleteConfirm = useShowDeleteConfirm();
@@ -203,4 +393,19 @@ export const useHandleDeleteLlm = (llmFactory: string) => {
   };
 
   return { handleDeleteLlm };
+};
+
+export const useHandleDeleteFactory = (llmFactory: string) => {
+  const { deleteFactory } = useDeleteFactory();
+  const showDeleteConfirm = useShowDeleteConfirm();
+
+  const handleDeleteFactory = () => {
+    showDeleteConfirm({
+      onOk: async () => {
+        deleteFactory({ llm_factory: llmFactory });
+      },
+    });
+  };
+
+  return { handleDeleteFactory };
 };

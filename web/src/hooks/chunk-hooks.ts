@@ -57,7 +57,7 @@ export const useFetchNextChunkList = (): ResponseGetType<{
         available_int: available,
         keywords: searchString,
       });
-      if (data.retcode === 0) {
+      if (data.code === 0) {
         const res = data.data;
         return {
           data: res.chunks,
@@ -124,13 +124,13 @@ export const useDeleteChunk = () => {
     mutateAsync,
   } = useMutation({
     mutationKey: ['deleteChunk'],
-    mutationFn: async (params: { chunkIds: string[]; documentId: string }) => {
+    mutationFn: async (params: { chunkIds: string[]; doc_id: string }) => {
       const { data } = await kbService.rm_chunk(params);
-      if (data.retcode === 0) {
+      if (data.code === 0) {
         setPaginationParams(1);
         queryClient.invalidateQueries({ queryKey: ['fetchChunkList'] });
       }
-      return data?.retcode;
+      return data?.code;
     },
   });
 
@@ -152,11 +152,11 @@ export const useSwitchChunk = () => {
       doc_id: string;
     }) => {
       const { data } = await kbService.switch_chunk(params);
-      if (data.retcode === 0) {
+      if (data.code === 0) {
         message.success(t('message.modified'));
         queryClient.invalidateQueries({ queryKey: ['fetchChunkList'] });
       }
-      return data?.retcode;
+      return data?.code;
     },
   });
 
@@ -179,11 +179,11 @@ export const useCreateChunk = () => {
         service = kbService.set_chunk;
       }
       const { data } = await service(payload);
-      if (data.retcode === 0) {
+      if (data.code === 0) {
         message.success(t('message.created'));
         queryClient.invalidateQueries({ queryKey: ['fetchChunkList'] });
       }
-      return data?.retcode;
+      return data?.code;
     },
   });
 
@@ -207,12 +207,13 @@ export const useFetchChunk = (chunkId?: string): ResponseType<any> => {
   return data;
 };
 
-export const useFetchKnowledgeGraph = (): ResponseType<any> => {
-  const { documentId } = useGetKnowledgeSearchParams();
-
+export const useFetchKnowledgeGraph = (
+  documentId: string,
+): ResponseType<any> => {
   const { data } = useQuery({
     queryKey: ['fetchKnowledgeGraph', documentId],
     initialData: true,
+    enabled: !!documentId,
     gcTime: 0,
     queryFn: async () => {
       const data = await kbService.knowledge_graph({

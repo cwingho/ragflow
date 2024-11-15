@@ -21,6 +21,8 @@ export interface IKnowledge {
   update_date: string;
   update_time: number;
   vector_similarity_weight: number;
+  embd_id: string;
+  nickname?: string;
 }
 
 export interface Parserconfig {
@@ -71,6 +73,7 @@ export interface ITenantInfo {
   tenant_id: string;
   chat_id: string;
   speech2text_id: string;
+  tts_id: string;
 }
 
 export interface IChunk {
@@ -97,6 +100,9 @@ export interface ITestingChunk {
   term_similarity: number;
   vector: number[];
   vector_similarity: number;
+  highlight: string;
+  positions: number[][];
+  docnm_kwd: string;
 }
 
 export interface ITestingDocument {

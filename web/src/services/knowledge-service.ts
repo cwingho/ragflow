@@ -1,7 +1,6 @@
 import api from '@/utils/api';
 import registerServer from '@/utils/register-server';
 import request from '@/utils/request';
-import pureRequest from 'umi-request';
 
 const {
   create_kb,
@@ -12,6 +11,7 @@ const {
   get_document_list,
   document_change_status,
   document_rm,
+  document_delete,
   document_create,
   document_change_parser,
   document_thumbnails,
@@ -24,10 +24,11 @@ const {
   retrieval_test,
   document_rename,
   document_run,
-  get_document_file,
   document_upload,
   web_crawl,
   knowledge_graph,
+  document_infos,
+  upload_and_parse,
 } = api;
 
 const methods = {
@@ -93,6 +94,10 @@ const methods = {
     url: web_crawl,
     method: 'post',
   },
+  document_infos: {
+    url: document_infos,
+    method: 'post',
+  },
   // chunk管理
   chunk_list: {
     url: chunk_list,
@@ -126,43 +131,16 @@ const methods = {
     url: knowledge_graph,
     method: 'get',
   },
+  document_delete: {
+    url: document_delete,
+    method: 'delete',
+  },
+  upload_and_parse: {
+    url: upload_and_parse,
+    method: 'post',
+  },
 };
 
 const kbService = registerServer<keyof typeof methods>(methods, request);
-
-export const getDocumentFile = (documentId: string) => {
-  return pureRequest(get_document_file + '/' + documentId, {
-    responseType: 'blob',
-    method: 'get',
-    parseResponse: false,
-    // getResponse: true,
-  })
-    .then((res) => {
-      const x = res.headers.get('content-disposition');
-      console.info(res);
-      console.info(x);
-      return res.blob();
-    })
-    .then((res) => {
-      // const objectURL = URL.createObjectURL(res);
-
-      // let btn = document.createElement('a');
-
-      // btn.download = '文件名.pdf';
-
-      // btn.href = objectURL;
-
-      // btn.click();
-
-      // URL.revokeObjectURL(objectURL);
-
-      // btn = null;
-
-      return res;
-    })
-    .catch((err) => {
-      console.info(err);
-    });
-};
 
 export default kbService;
