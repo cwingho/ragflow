@@ -10,6 +10,7 @@ ADD ./api ./api
 ADD ./conf ./conf
 ADD ./deepdoc ./deepdoc
 ADD ./rag ./rag
+ADD ./agent ./agent
 ADD ./graphrag ./graphrag
 ADD ./requirements_custom.txt ./requirements_custom.txt
 
